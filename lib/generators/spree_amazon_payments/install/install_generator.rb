@@ -13,6 +13,16 @@ module SpreeAmazonPayments
 
       class_option :auto_run_migrations, :type => :boolean, :default => false
 
+      def create_javascripts
+        create_file 'vendor/assets/javascripts/spree/frontend/all.js' unless File.exists?('vendor/assets/javascripts/spree/frontend/all.js')
+        create_file 'vendor/assets/javascripts/spree/backend/all.js' unless File.exists?('vendor/assets/javascripts/spree/backend/all.js')
+      end
+
+      def create_stylesheets
+        create_file 'vendor/assets/stylesheets/spree/frontend/all.css' unless File.exists?('vendor/assets/stylesheets/spree/frontend/all.css')
+        create_file 'vendor/assets/stylesheets/spree/backend/all.css' unless File.exists?('vendor/assets/stylesheets/spree/backend/all.css')
+      end
+
       def add_javascripts
         append_file 'vendor/assets/javascripts/spree/frontend/all.js', "//= require spree/frontend/spree_amazon_payments\n"
         append_file 'vendor/assets/javascripts/spree/backend/all.js', "//= require spree/backend/spree_amazon_payments\n"
