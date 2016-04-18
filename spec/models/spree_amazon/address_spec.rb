@@ -22,6 +22,7 @@ describe SpreeAmazon::Address do
       expect(address.state_name).to eq("KS")
       expect(address.name).to eq("Mary Jones")
       expect(address.address1).to eq("4409 Main St.")
+      expect(address.phone).to eq("800-000-0000")
     end
 
     it "returns nil if the order doesn't have a physical address" do

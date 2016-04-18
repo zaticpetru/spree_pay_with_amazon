@@ -29,13 +29,14 @@ class SpreeAmazon::Address
         city: response["City"],
         zipcode: response["PostalCode"],
         state_name: response["StateOrRegion"],
-        country_code: response["CountryCode"]
+        country_code: response["CountryCode"],
+        phone: response["Phone"]
       }
     end
   end
 
   attr_accessor :name, :city, :zipcode, :state_name, :country_code,
-                :address1
+                :address1, :phone
 
   def initialize(attributes)
     attributes.each_pair do |key, value|
