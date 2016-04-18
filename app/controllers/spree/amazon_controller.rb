@@ -41,6 +41,7 @@ class Spree::AmazonController < Spree::StoreController
         firstname: "Amazon",
         lastname: "User",
         address1: "TBD",
+        phone: "TBD",
         city: address.city,
         zipcode: address.zipcode,
         state_name: address.state_name,
