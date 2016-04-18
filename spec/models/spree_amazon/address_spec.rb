@@ -51,6 +51,15 @@ describe SpreeAmazon::Address do
     end
   end
 
+  describe '#country' do
+    it "returns the Spree::Country that matches country_code" do
+      us = create(:country, iso: 'US')
+      address = SpreeAmazon::Address.new(country_code: 'US')
+
+      expect(address.country).to eq(us)
+    end
+  end
+
   def stub_amazon_response(order_reference, response_data)
     mws = instance_double(AmazonMws)
     response = AmazonMwsOrderResponse.new(response_data)

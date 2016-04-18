@@ -59,6 +59,6 @@ class SpreeAmazon::Address
   end
 
   def country
-    @country ||= Spree::Contry.find_by(iso: country_code)
+    @country ||= Spree::Country.find_by(iso: country_code)
   end
 end
