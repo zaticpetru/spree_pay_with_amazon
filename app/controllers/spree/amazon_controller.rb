@@ -32,21 +32,20 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def delivery
-    data = @mws.fetch_order_data
     current_order.state = 'cart'
+    address = SpreeAmazon::Address.find(current_order.amazon_order_reference_id)
 
-    if data.destination && data.destination["PhysicalDestination"]
+    if address
       current_order.email = "pending@amazon.com"
-      address = data.destination["PhysicalDestination"]
       spree_address = Spree::Address.new(
-                              "firstname" => "Amazon",
-                              "lastname" => "User",
-                              "address1" => "TBD",
-                              "phone" => "TBD",
-                              "city" => address["City"],
-                              "zipcode" => address["PostalCode"],
-                              "state_name" => address["StateOrRegion"],
-                              "country" => Spree::Country.where("iso = ? OR iso_name = ?", address["CountryCode"],address["CountryCode"]).first)
+        firstname: "Amazon",
+        lastname: "User",
+        address1: "TBD",
+        city: address.city,
+        zipcode: address.zipcode,
+        state_name: address.state_name,
+        country: address.country
+      )
       spree_address.save!
       current_order.ship_address_id = spree_address.id
       current_order.bill_address_id = spree_address.id
@@ -130,13 +129,12 @@ class Spree::AmazonController < Spree::StoreController
     end
   end
 
+  private
+
   def load_amazon_mws
     render :nothing => true, :status => 200 if current_order.amazon_order_reference_id.nil?
     @mws ||= AmazonMws.new(current_order.amazon_order_reference_id, Spree::Gateway::Amazon.first.preferred_test_mode)
   end
-
-  private
-
 
   def check_for_current_order
     redirect_to root_path, :notice => "No Order Found" if current_order.nil?
