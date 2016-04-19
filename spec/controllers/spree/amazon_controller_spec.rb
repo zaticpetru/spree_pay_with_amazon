@@ -10,6 +10,16 @@ describe Spree::AmazonController do
 
       expect(order.reload.cart?).to be true
     end
+
+    it "redirects if there's no current order" do
+      spree_get :address
+
+      expect(response).to redirect_to('/')
+    end
+
+    it "redirects if there's no amazon order reference id" do
+
+    end
   end
 
   describe 'POST #delivery' do
@@ -70,6 +80,34 @@ describe Spree::AmazonController do
 
         expect(flash[:notice]).to eq("Unable to load Address data from Amazon")
       end
+    end
+  end
+
+  describe "#POST payment" do
+    context "when the order doesn't have an amazon payment" do
+      it "creates a new payment" do
+        order = create(:order_with_totals)
+        set_current_order(order)
+
+        expect {
+          spree_post :payment, order_reference: 'ORDER_REFERENCE'
+        }.to change(order.payments, :count).by(1)
+      end
+    end
+
+    it "sets the correct attributes on the payment" do
+      Spree::Gateway::Amazon.create!(name: 'Amazon')
+      order = create(:order_with_totals)
+      set_current_order(order)
+
+      spree_post :payment, order_reference: 'ORDER_REFERENCE'
+
+      payment = order.payments.amazon.first
+      transaction = payment.source
+      expect(payment.number).to eq('ORDER_REFERENCE')
+      expect(payment.payment_method).to be_a(Spree::Gateway::Amazon)
+      expect(transaction.order_reference).to eq('ORDER_REFERENCE')
+      expect(transaction.order_id).to eq(order.id)
     end
   end
 
