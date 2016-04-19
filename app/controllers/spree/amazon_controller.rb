@@ -8,10 +8,8 @@
 #
 ##
 class Spree::AmazonController < Spree::StoreController
-
   helper 'spree/orders'
-  before_filter :check_for_current_order
-  before_filter :load_amazon_mws, except: [:address, :payment, :complete, :delivery]
+  before_filter :check_current_order
 
   respond_to :json
 
@@ -26,12 +24,12 @@ class Spree::AmazonController < Spree::StoreController
     payment.payment_method = Spree::Gateway::Amazon.first
     payment.source ||= Spree::AmazonTransaction.create(
       order_reference: params[:order_reference],
-      :order_id => current_order.id
+      order_id: current_order.id
     )
 
     payment.save!
 
-    render json: {}.to_json
+    render json: {}
   end
 
   def delivery
@@ -65,38 +63,46 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def confirm
-
     if current_order.update_from_params(params, permitted_checkout_attributes, request.headers.env)
+      order = SpreeAmazon::Order.new(
+        reference_id: current_order.amazon_order_reference_id,
+        total: current_order.total,
+        currency: current_order.currency
+      )
+      order.save_total
+      order.confirm
+      order.fetch
 
-      @mws.set_order_data(current_order.total, current_order.currency)
-
-      result = @mws.confirm_order
-
-      data = @mws.fetch_order_data
-
-      if data.destination && data.destination["PhysicalDestination"]
-        current_order.email = data.email
+      if order.address
+        current_order.email = order.email
         current_order.save!
-        address = data.destination["PhysicalDestination"]
-        first_name = address["Name"].split(" ")[0] rescue "Amazon"
-        last_name = address["Name"].split(" ")[1..10].join(" ")
-        spree_address = current_order.ship_address
-        spree_address.update({
-                                "firstname" => first_name,
-                                "lastname" => last_name,
-                                "address1" => address["AddressLine1"],
-                                "phone" => address["Phone"] || "n/a",
-                                "city" => address["City"],
-                                "zipcode" => address["PostalCode"],
-                                "state_name" => address["StateOrRegion"],
-                                "country" => Spree::Country.find_by_iso(address["CountryCode"])})
-        spree_address.save!
+
+        address = order.address
+        new_shipping_address = current_order.ship_address.dup
+        new_shipping_address.update(
+          firstname: address.first_name,
+          lastname: address.last_name,
+          address1: address.address1,
+          phone: address.phone || "N/A",
+          city: address.city,
+          zipcode: address.zipcode,
+          state_name: address.state_name,
+          country: address.country
+        )
+
+        if current_order.ship_address != new_shipping_address
+          ActiveRecord::Base.transaction do
+            old_shipping_address = current_order.ship_address
+            current_order.ship_address = new_shipping_address
+            current_order.save!
+          end
+        end
       else
         raise "There is a problem with your order"
       end
       current_order.create_tax_charge!
       current_order.reload
-      payment = current_order.payments.valid.first{|p| p.source_type == "Spree::AmazonTransaction"}
+      payment = current_order.payments.valid.amazon.first
       payment.amount = current_order.total
       payment.save!
       @order = current_order
@@ -106,7 +112,6 @@ class Spree::AmazonController < Spree::StoreController
     else
       render :edit
     end
-
   end
 
   def complete
@@ -135,13 +140,9 @@ class Spree::AmazonController < Spree::StoreController
 
   private
 
-  def load_amazon_mws
-    render :nothing => true, :status => 200 if current_order.amazon_order_reference_id.nil?
-    @mws ||= AmazonMws.new(current_order.amazon_order_reference_id, Spree::Gateway::Amazon.first.preferred_test_mode)
-  end
-
-  def check_for_current_order
-    redirect_to root_path, :notice => "No Order Found" if current_order.nil?
-    return true
+  def check_current_order
+    unless current_order.try(:amazon_order_reference_id)
+      redirect_to root_path, :notice => "No Order Found"
+    end
   end
 end

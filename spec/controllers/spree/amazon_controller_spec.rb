@@ -88,6 +88,7 @@ describe Spree::AmazonController do
   end
 
   def set_current_order(order)
+    order.amazon_transactions.create(order_reference: 'ORDER_REFERENCE')
     allow(controller).to receive(:current_order).and_return(order)
   end
 end
