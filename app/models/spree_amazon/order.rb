@@ -14,10 +14,11 @@ class SpreeAmazon::Order
   def fetch
     response = mws.fetch_order_data
     self.attributes = attributes_from_response(response)
+    self
   end
 
   def confirm
-    mws.confirm
+    mws.confirm_order
   end
 
   def save_total

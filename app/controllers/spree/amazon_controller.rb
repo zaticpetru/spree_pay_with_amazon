@@ -10,6 +10,7 @@
 class Spree::AmazonController < Spree::StoreController
   helper 'spree/orders'
   before_filter :check_current_order
+  before_filter :check_amazon_reference_id, only: [:delivery, :confirm]
 
   respond_to :json
 
@@ -138,8 +139,14 @@ class Spree::AmazonController < Spree::StoreController
   private
 
   def check_current_order
-    unless current_order.try(:amazon_order_reference_id)
+    unless current_order
       redirect_to root_path, :notice => "No Order Found"
+    end
+  end
+
+  def check_amazon_reference_id
+    unless current_order.amazon_order_reference_id
+      redirect_to root_path, notice: 'No order reference found'
     end
   end
 end
