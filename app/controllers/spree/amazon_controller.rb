@@ -21,10 +21,13 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def payment
-    payment = current_order.payments.valid.first{|p| p.source_type == "Spree::AmazonTransaction"} || current_order.payments.create
+    payment = current_order.payments.amazon.first || current_order.payments.create
     payment.number = params[:order_reference]
-    payment.payment_method = Spree::PaymentMethod.find_by(:type => "Spree::Gateway::Amazon")
-    payment.source ||= Spree::AmazonTransaction.create(:order_reference => params[:order_reference], :order_id => current_order.id)
+    payment.payment_method = Spree::Gateway::Amazon.first
+    payment.source ||= Spree::AmazonTransaction.create(
+      order_reference: params[:order_reference],
+      :order_id => current_order.id
+    )
 
     payment.save!
 

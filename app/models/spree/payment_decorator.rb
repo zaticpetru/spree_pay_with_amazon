@@ -8,6 +8,8 @@
 #
 ##
 Spree::Payment.class_eval do
+  scope :amazon, ->{ where(source_type: 'Spree::AmazonTransaction') }
+
   # order state machine (see http://github.com/pluginaweek/state_machine/tree/master for details)
   state_machine initial: :checkout do
     # With card payments, happens before purchase or authorization happens
