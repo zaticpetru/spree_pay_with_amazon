@@ -1,6 +1,17 @@
 require 'spec_helper'
 
 describe Spree::AmazonController do
+  describe "GET #address" do
+    it "sets the order to the cart state" do
+      order = create(:order_with_totals, state: 'address')
+      set_current_order(order)
+
+      spree_get :address
+
+      expect(order.reload.cart?).to be true
+    end
+  end
+
   describe 'POST #delivery' do
     context "when the user has selected an amazon address" do
       let!(:us) { create(:country, iso: 'US') }
