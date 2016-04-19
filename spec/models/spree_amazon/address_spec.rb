@@ -61,11 +61,12 @@ describe SpreeAmazon::Address do
   end
 
   def stub_amazon_response(order_reference, response_data)
+    Spree::Gateway::Amazon.create!(name: 'Amazon', preferred_test_mode: true)
     mws = instance_double(AmazonMws)
     response = AmazonMwsOrderResponse.new(response_data)
     allow(mws).to receive(:fetch_order_data).and_return(response)
-    allow(SpreeAmazon::Address). to receive(:mws).with(order_reference)
-                                                 .and_return(mws)
+    allow(AmazonMws).to receive(:new).with(order_reference, true)
+                                     .and_return(mws)
   end
 
   def build_address_response(address_details)

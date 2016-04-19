@@ -11,7 +11,7 @@ class Spree::AmazonController < Spree::StoreController
 
   helper 'spree/orders'
   before_filter :check_for_current_order
-  before_filter :load_amazon_mws, except: [:address, :payment, :complete]
+  before_filter :load_amazon_mws, except: [:address, :payment, :complete, :delivery]
 
   respond_to :json
 
@@ -55,10 +55,10 @@ class Spree::AmazonController < Spree::StoreController
       current_order.next! # to Delivery
 
       current_order.reload
+      render :layout => false
     else
       redirect_to address_amazon_order_path, :notice => "Unable to load Address data from Amazon"
     end
-    render :layout => false
   end
 
   def confirm
