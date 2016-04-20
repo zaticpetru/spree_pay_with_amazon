@@ -45,17 +45,15 @@ class SpreeAmazon::Address
   end
 
   def first_name
-    unless name.blank?
-      name.split(" ").first
-    end
+    return nil if name.blank?
+    name.split(" ").first
   end
 
   def last_name
-    unless name.blank?
-      names = name.split(" ")
-      names.shift
-      names.join(" ")
-    end
+    return nil if name.blank?
+    names = name.split(" ")
+    names.shift
+    names.join(" ")
   end
 
   def country
