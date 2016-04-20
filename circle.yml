@@ -5,7 +5,7 @@ machine:
 
 database:
   override:
-    -
+    - mkdir -p config
 
 test:
   pre:
