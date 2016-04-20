@@ -47,9 +47,9 @@ class Spree::AmazonController < Spree::StoreController
       current_order.next! # to Delivery
 
       current_order.reload
-      render :layout => false
+      render layout: false
     else
-      redirect_to address_amazon_order_path, :notice => "Unable to load Address data from Amazon"
+      redirect_to address_amazon_order_path, notice: "Unable to load Address data from Amazon"
     end
   end
 
@@ -88,7 +88,7 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def complete
-    @order = Spree::Order.find_by(:number => params[:amazon_order_id])
+    @order = current_order
     authorize!(:edit, @order, cookies.signed[:guest_token])
 
     redirect_to root_path if @order.nil?
@@ -103,8 +103,7 @@ class Spree::AmazonController < Spree::StoreController
     else
       @order.state = 'cart'
       @order.amazon_transactions.destroy_all
-      redirect_to cart_path, :notice => "Unable to process order"
-      return true
+      redirect_to cart_path, notice: "Unable to process order"
     end
   end
 

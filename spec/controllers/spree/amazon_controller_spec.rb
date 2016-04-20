@@ -87,7 +87,7 @@ describe Spree::AmazonController do
 
     it "updates the shipping address of the order" do
       order = create(:order_with_line_items)
-      order.payments.create!(source_type: 'Spree::AmazonTransaction')
+      create_order_payment(order)
       address = build_amazon_address(
         name: 'Matt Murdock',
         address1: '224 Lafayette St',
@@ -116,7 +116,7 @@ describe Spree::AmazonController do
 
     it "sets the correct amount on the payment" do
       order = create(:order_with_line_items)
-      payment = order.payments.create!(amount: 10, source_type: 'Spree::AmazonTransaction')
+      payment = create_order_payment(order, amount: 10)
       amazon_order = build_amazon_order(
         address: build_amazon_address
       )
@@ -131,7 +131,7 @@ describe Spree::AmazonController do
 
     it "saves the total and confirms the order with mws" do
       order = create(:order_with_line_items)
-      payment = order.payments.create!(source_type: 'Spree::AmazonTransaction')
+      create_order_payment(order)
       amazon_order = build_amazon_order(
         address: build_amazon_address
       )
@@ -143,6 +143,39 @@ describe Spree::AmazonController do
 
       expect(amazon_order).to have_received(:save_total)
       expect(amazon_order).to have_received(:confirm)
+    end
+  end
+
+  describe "POST #complete" do
+    it "completes the spree order" do
+      order = create(:order_with_line_items)
+      create_order_payment(order)
+      set_current_order(order)
+
+      spree_post :complete
+
+      expect(order.completed?).to be true
+    end
+
+    context "when the order can't be completed" do
+      # Order won't be able to complete as the payment is missing
+      it "redirects to the cart page" do
+        order = create(:order_with_line_items)
+        set_current_order(order)
+
+        spree_post :complete
+
+        expect(response).to redirect_to('/cart')
+      end
+
+      it "sets an error message" do
+        order = create(:order_with_line_items)
+        set_current_order(order)
+
+        spree_post :complete
+
+        expect(flash[:notice]).to eq("Unable to process order")
+      end
     end
   end
 
@@ -172,6 +205,13 @@ describe Spree::AmazonController do
       expect(transaction.order_reference).to eq('ORDER_REFERENCE')
       expect(transaction.order_id).to eq(order.id)
     end
+  end
+
+  def create_order_payment(order, amount: nil)
+    transaction = Spree::AmazonTransaction.create!(
+      order_id: order.id, order_reference: 'REFERENCE'
+    )
+    order.payments.create!(source: transaction, amount: amount || order.total)
   end
 
   def build_amazon_order(attributes = {})
@@ -210,5 +250,6 @@ describe Spree::AmazonController do
   def set_current_order(order)
     order.amazon_transactions.create(order_reference: 'ORDER_REFERENCE')
     allow(controller).to receive(:current_order).and_return(order)
+    cookies.signed[:guest_token] = order.guest_token
   end
 end
