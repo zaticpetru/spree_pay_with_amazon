@@ -15,10 +15,10 @@ class SpreeAmazon::Address
     private
 
     def mws(order_reference)
-      AmazonMws.new(order_reference, test_mode)
+      AmazonMws.new(order_reference, in_test_mode?)
     end
 
-    def test_mode
+    def in_test_mode?
       Spree::Gateway::Amazon.first.preferred_test_mode
     end
 

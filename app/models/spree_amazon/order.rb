@@ -34,10 +34,10 @@ class SpreeAmazon::Order
   end
 
   def mws
-    @mws ||= AmazonMws.new(reference_id, test_mode)
+    @mws ||= AmazonMws.new(reference_id, in_test_mode?)
   end
 
-  def test_mode
+  def in_test_mode?
     Spree::Gateway::Amazon.first.preferred_test_mode
   end
 
