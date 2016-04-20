@@ -39,19 +39,9 @@ class Spree::AmazonController < Spree::StoreController
 
     if address
       current_order.email = "pending@amazon.com"
-      spree_address = Spree::Address.new(
-        firstname: "Amazon",
-        lastname: "User",
-        address1: "TBD",
-        phone: "TBD",
-        city: address.city,
-        zipcode: address.zipcode,
-        state_name: address.state_name,
-        country: address.country
-      )
-      spree_address.save!
-      current_order.ship_address_id = spree_address.id
-      current_order.bill_address_id = spree_address.id
+      update_current_order_address!(:ship_address, address)
+      update_current_order_address!(:bill_address, address)
+
       current_order.save!
       current_order.next! # to Address
       current_order.next! # to Delivery
@@ -79,25 +69,7 @@ class Spree::AmazonController < Spree::StoreController
         current_order.save!
 
         address = order.address
-        new_shipping_address = current_order.ship_address.dup
-        new_shipping_address.update(
-          firstname: address.first_name,
-          lastname: address.last_name,
-          address1: address.address1,
-          phone: address.phone || "N/A",
-          city: address.city,
-          zipcode: address.zipcode,
-          state_name: address.state_name,
-          country: address.country
-        )
-
-        if current_order.ship_address != new_shipping_address
-          ActiveRecord::Base.transaction do
-            old_shipping_address = current_order.ship_address
-            current_order.ship_address = new_shipping_address
-            current_order.save!
-          end
-        end
+        update_current_order_address!(:ship_address, order.address)
       else
         raise "There is a problem with your order"
       end
@@ -138,9 +110,30 @@ class Spree::AmazonController < Spree::StoreController
 
   private
 
+  def update_current_order_address!(address_type, amazon_address)
+    new_address = Spree::Address.new address_attributes(amazon_address)
+    new_address.save!
+
+    current_order.send("#{address_type}_id=", new_address.id)
+    current_order.save!
+  end
+
+  def address_attributes(amazon_address)
+    {
+      firstname: amazon_address.first_name || "Amazon",
+      lastname: amazon_address.last_name || "User",
+      address1: amazon_address.address1 || "N/A",
+      phone: amazon_address.phone || "N/A",
+      city: amazon_address.city,
+      zipcode: amazon_address.zipcode,
+      state_name: amazon_address.state_name,
+      country: amazon_address.country
+    }
+  end
+
   def check_current_order
     unless current_order
-      redirect_to root_path, :notice => "No Order Found"
+      redirect_to root_path, notice: "No Order Found"
     end
   end
 
