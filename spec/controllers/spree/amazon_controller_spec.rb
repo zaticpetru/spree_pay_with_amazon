@@ -1,6 +1,8 @@
 require 'spec_helper'
 
 describe Spree::AmazonController do
+  before { Spree::Gateway::Amazon.create!(name: 'Amazon', preferred_test_mode: true) }
+
   describe "GET #address" do
     it "sets the order to the cart state" do
       order = create(:order_with_totals, state: 'address')
@@ -16,10 +18,6 @@ describe Spree::AmazonController do
 
       expect(response).to redirect_to('/')
     end
-
-    it "redirects if there's no amazon order reference id" do
-
-    end
   end
 
   describe 'POST #delivery' do
@@ -28,7 +26,7 @@ describe Spree::AmazonController do
       let!(:ny) {create(:state, abbr: 'NY', country: us) }
 
       it "associates that address with the order" do
-        order = create(:order_with_line_items)
+        order = create(:order_with_line_items, ship_address: create(:address))
         address = build_amazon_address(
           city: "New York",
           state_name: "NY",
@@ -83,7 +81,72 @@ describe Spree::AmazonController do
     end
   end
 
-  describe "#POST payment" do
+  describe "POST #confirm" do
+    let!(:us) { create(:country, iso: 'US') }
+    let!(:ny) {create(:state, abbr: 'NY', country: us) }
+
+    it "updates the shipping address of the order" do
+      order = create(:order_with_line_items)
+      order.payments.create!(source_type: 'Spree::AmazonTransaction')
+      address = build_amazon_address(
+        name: 'Matt Murdock',
+        address1: '224 Lafayette St',
+        city: 'New York',
+        state_name: 'NY',
+        country_code: 'US',
+        zipcode: '10024'
+      )
+      amazon_order = build_amazon_order(
+        address: address
+      )
+      stub_confirmation_methods(amazon_order)
+      set_current_order(order)
+      stub_amazon_order(amazon_order)
+
+      spree_post :confirm
+
+      address = order.ship_address(true)
+      expect(address.firstname).to eq('Matt')
+      expect(address.lastname).to eq('Murdock')
+      expect(address.address1).to eq('224 Lafayette St')
+      expect(address.city).to eq('New York')
+      expect(address.state_text).to eq('NY')
+      expect(address.country).to eq(us)
+    end
+
+    it "sets the correct amount on the payment" do
+      order = create(:order_with_line_items)
+      payment = order.payments.create!(amount: 10, source_type: 'Spree::AmazonTransaction')
+      amazon_order = build_amazon_order(
+        address: build_amazon_address
+      )
+      stub_confirmation_methods(amazon_order)
+      set_current_order(order)
+      stub_amazon_order(amazon_order)
+
+      spree_post :confirm
+
+      expect(payment.reload.amount).to eq(order.reload.total)
+    end
+
+    it "saves the total and confirms the order with mws" do
+      order = create(:order_with_line_items)
+      payment = order.payments.create!(source_type: 'Spree::AmazonTransaction')
+      amazon_order = build_amazon_order(
+        address: build_amazon_address
+      )
+      stub_confirmation_methods(amazon_order)
+      set_current_order(order)
+      stub_amazon_order(amazon_order)
+
+      spree_post :confirm
+
+      expect(amazon_order).to have_received(:save_total)
+      expect(amazon_order).to have_received(:confirm)
+    end
+  end
+
+  describe "POST #payment" do
     context "when the order doesn't have an amazon payment" do
       it "creates a new payment" do
         order = create(:order_with_totals)
@@ -111,6 +174,13 @@ describe Spree::AmazonController do
     end
   end
 
+  def build_amazon_order(attributes = {})
+    defaults = {
+      email: 'mmurdock@doe.com'
+    }
+    SpreeAmazon::Order.new defaults.merge(attributes)
+  end
+
   def build_amazon_address(attributes = {})
     defaults = {
       city: "New York",
@@ -119,6 +189,18 @@ describe Spree::AmazonController do
       zipcode: "10012"
     }
     SpreeAmazon::Address.new defaults.merge(attributes)
+  end
+
+  def stub_confirmation_methods(amazon_order)
+    allow(amazon_order).to receive_messages(
+      fetch: true,
+      save_total: true,
+      confirm: true
+    )
+  end
+
+  def stub_amazon_order(order)
+    allow(SpreeAmazon::Order).to receive(:new).and_return(order)
   end
 
   def select_amazon_address(address)
