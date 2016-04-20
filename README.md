@@ -1,5 +1,6 @@
 spree_pay_with_amazon
 ===================
+[![Circle CI](https://circleci.com/gh/boomerdigital/spree_pay_with_amazon.svg?style=svg)](https://circleci.com/gh/boomerdigital/spree_pay_with_amazon)
 
 Add Pay with Amazon to your Spree Commerce solution.
 
