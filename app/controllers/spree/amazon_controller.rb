@@ -138,7 +138,8 @@ class Spree::AmazonController < Spree::StoreController
 
   def check_amazon_reference_id
     unless current_order.amazon_order_reference_id
-      redirect_to root_path, notice: 'No order reference found'
+      flash.now[:notice] = 'No order reference found'
+      redirect_to root_path
     end
   end
 end
