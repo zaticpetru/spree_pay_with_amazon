@@ -1,0 +1,8 @@
+---
+machine:
+  ruby:
+    version: 2.3.0
+
+test:
+  pre:
+    - bundle exec rake test_app
