@@ -9,7 +9,7 @@
 <fieldset id="order_details" data-hook>
   <div class="clear"></div>
   <legend align="center"><%= Spree.t(:confirm) %></legend>
-  <%= render :partial => 'spree/amazon/order_details', :locals => { :order => @order } %>
+  <%= render :partial => 'spree/amazon/order_details', :locals => { :order => current_order } %>
 </fieldset>
 
 <%= form_tag spree.complete_amazon_order_path, :class => 'edit_order' do %>

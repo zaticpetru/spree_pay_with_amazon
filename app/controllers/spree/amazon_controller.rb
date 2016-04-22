@@ -55,30 +55,26 @@ class Spree::AmazonController < Spree::StoreController
 
   def confirm
     if current_order.update_from_params(params, permitted_checkout_attributes, request.headers.env)
-      order = SpreeAmazon::Order.new(
-        reference_id: current_order.amazon_order_reference_id,
-        total: current_order.total,
-        currency: current_order.currency
-      )
-      order.save_total
-      order.confirm
-      order.fetch
+      order = SpreeAmazon::Order.find(current_order.amazon_order_reference_id)
 
+      current_order.email = order.email
       if order.address
-        current_order.email = order.email
-        current_order.save!
-
-        address = order.address
         update_current_order_address!(:ship_address, order.address)
       else
         raise "There is a problem with your order"
       end
+
       current_order.create_tax_charge!
       current_order.reload
+
       payment = current_order.payments.valid.amazon.first
       payment.amount = current_order.total
       payment.save!
-      @order = current_order
+
+      order.total = current_order.total
+      order.currency = current_order.currency
+      order.save_total
+      order.confirm
 
       # Remove the following line to enable the confirmation step.
       # redirect_to amazon_order_complete_path(@order)

@@ -233,7 +233,7 @@ describe Spree::AmazonController do
 
   def stub_confirmation_methods(amazon_order)
     allow(amazon_order).to receive_messages(
-      fetch: true,
+      fetch: amazon_order,
       save_total: true,
       confirm: true
     )
