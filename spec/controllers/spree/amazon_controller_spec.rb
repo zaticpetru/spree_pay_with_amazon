@@ -4,13 +4,13 @@ describe Spree::AmazonController do
   before { Spree::Gateway::Amazon.create!(name: 'Amazon', preferred_test_mode: true) }
 
   describe "GET #address" do
-    it "sets the order to the cart state" do
-      order = create(:order_with_totals, state: 'address')
+    it "sets the order to the address state" do
+      order = create(:order_with_totals, state: 'cart')
       set_current_order(order)
 
       spree_get :address
 
-      expect(order.reload.cart?).to be true
+      expect(order.reload.address?).to be true
     end
 
     it "redirects if there's no current order" do
@@ -54,7 +54,7 @@ describe Spree::AmazonController do
 
         spree_post :delivery
 
-        expect(order.delivery?).to be true
+        expect(order.reload.delivery?).to be true
       end
     end
 
@@ -82,11 +82,92 @@ describe Spree::AmazonController do
   end
 
   describe "POST #confirm" do
-    let!(:us) { create(:country, iso: 'US') }
-    let!(:ny) {create(:state, abbr: 'NY', country: us) }
+    it "sets the correct amount on the payment" do
+      order = create(:order_with_line_items, state: 'delivery')
+      payment = create_order_payment(order, amount: 10)
+      set_current_order(order)
+      shipment = order.shipments.first
+      shipping_rate = shipment.selected_shipping_rate
+      shipment_attributes = build_shipment_attributes(
+        id: shipment.id,
+        selected_shipping_rate_id: shipping_rate.id
+      )
+
+      spree_post :confirm, order: shipment_attributes
+
+      expect(payment.reload.amount).to eq(order.reload.total)
+    end
+
+    it "moves the order to the confirm state" do
+      order = create(:order_with_line_items, state: 'delivery')
+      payment = create_order_payment(order)
+      set_current_order(order)
+      shipment = order.shipments.first
+      shipping_rate = shipment.selected_shipping_rate
+      shipment_attributes = build_shipment_attributes(
+        id: shipment.id,
+        selected_shipping_rate_id: shipping_rate.id
+      )
+
+      spree_post :confirm, order: shipment_attributes
+
+      expect(order.reload.confirm?).to be true
+    end
+
+    it "updates the shipping rate" do
+      order = create(:order_with_line_items, state: 'delivery')
+      payment = create_order_payment(order)
+      set_current_order(order)
+      shipment = order.shipments.first
+      other_shipping_method = create(:shipping_method, name: 'Other')
+      new_shipping_rate = shipment.add_shipping_method(other_shipping_method)
+      shipment_attributes = build_shipment_attributes(
+        id: shipment.id,
+        selected_shipping_rate_id: new_shipping_rate.id
+      )
+
+      spree_post :confirm, order: shipment_attributes
+
+      expect(shipment.reload.selected_shipping_rate).to eq(new_shipping_rate)
+    end
+  end
+
+  describe "POST #complete" do
+    it "completes the spree order" do
+      order = create(:order_with_line_items, state: 'confirm')
+      create_order_payment(order)
+      set_current_order(order)
+      amazon_order = build_amazon_order(
+        address: build_amazon_address
+      )
+      stub_confirmation_methods(amazon_order)
+      stub_amazon_order(amazon_order)
+
+      spree_post :complete
+
+      expect(order.completed?).to be true
+    end
+
+    it "saves the total and confirms the order with mws" do
+      order = create(:order_with_line_items, state: 'confirm')
+      create_order_payment(order)
+      amazon_order = build_amazon_order(
+        address: build_amazon_address
+      )
+      stub_confirmation_methods(amazon_order)
+      stub_amazon_order(amazon_order)
+      set_current_order(order)
+
+      spree_post :complete
+
+      expect(amazon_order).to have_received(:save_total)
+      expect(amazon_order).to have_received(:confirm)
+    end
 
     it "updates the shipping address of the order" do
-      order = create(:order_with_line_items)
+      us = create(:country, iso: 'US')
+      ny = create(:state, abbr: 'NY', country: us)
+      order = create(:order_with_line_items, state: 'confirm')
       create_order_payment(order)
       address = build_amazon_address(
         name: 'Matt Murdock',
@@ -100,10 +181,10 @@ describe Spree::AmazonController do
         address: address
       )
       stub_confirmation_methods(amazon_order)
-      set_current_order(order)
       stub_amazon_order(amazon_order)
+      set_current_order(order)
 
-      spree_post :confirm
+      spree_post :complete
 
       address = order.ship_address(true)
       expect(address.firstname).to eq('Matt')
@@ -114,56 +195,18 @@ describe Spree::AmazonController do
       expect(address.country).to eq(us)
     end
 
-    it "sets the correct amount on the payment" do
-      order = create(:order_with_line_items)
-      payment = create_order_payment(order, amount: 10)
-      amazon_order = build_amazon_order(
-        address: build_amazon_address
-      )
-      stub_confirmation_methods(amazon_order)
-      set_current_order(order)
-      stub_amazon_order(amazon_order)
-
-      spree_post :confirm
-
-      expect(payment.reload.amount).to eq(order.reload.total)
-    end
-
-    it "saves the total and confirms the order with mws" do
-      order = create(:order_with_line_items)
-      create_order_payment(order)
-      amazon_order = build_amazon_order(
-        address: build_amazon_address
-      )
-      stub_confirmation_methods(amazon_order)
-      set_current_order(order)
-      stub_amazon_order(amazon_order)
-
-      spree_post :confirm
-
-      expect(amazon_order).to have_received(:save_total)
-      expect(amazon_order).to have_received(:confirm)
-    end
-  end
-
-  describe "POST #complete" do
-    it "completes the spree order" do
-      order = create(:order_with_line_items)
-      create_order_payment(order)
-      set_current_order(order)
-
-      spree_post :complete
-
-      expect(order.completed?).to be true
-    end
-
     context "when the order can't be completed" do
       # Order won't be able to complete as the payment is missing
       it "redirects to the cart page" do
         order = create(:order_with_line_items)
         set_current_order(order)
+        amazon_order = build_amazon_order(
+          address: build_amazon_address
+        )
+        stub_confirmation_methods(amazon_order)
+        stub_amazon_order(amazon_order)
 
-        spree_post :complete
+        spree_post :complete, order: {}
 
         expect(response).to redirect_to('/cart')
       end
@@ -171,8 +214,13 @@ describe Spree::AmazonController do
       it "sets an error message" do
         order = create(:order_with_line_items)
         set_current_order(order)
+        amazon_order = build_amazon_order(
+          address: build_amazon_address
+        )
+        stub_confirmation_methods(amazon_order)
+        stub_amazon_order(amazon_order)
 
-        spree_post :complete
+        spree_post :complete, order: {}
 
         expect(flash[:notice]).to eq("Unable to process order")
       end
@@ -252,4 +300,13 @@ describe Spree::AmazonController do
     allow(controller).to receive(:current_order).and_return(order)
     cookies.signed[:guest_token] = order.guest_token
   end
+
+  def build_shipment_attributes(attributes)
+    {
+      shipments_attributes: [
+        attributes
+      ]
+    }
+  end
 end
+

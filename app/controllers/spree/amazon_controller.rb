@@ -10,17 +10,17 @@
 class Spree::AmazonController < Spree::StoreController
   helper 'spree/orders'
   before_filter :check_current_order
-  before_filter :check_amazon_reference_id, only: [:delivery, :confirm]
+  before_filter :check_amazon_reference_id, only: [:delivery, :complete]
 
   respond_to :json
 
   def address
-    current_order.state = 'cart'
+    current_order.state = 'address'
     current_order.save!
   end
 
   def payment
-    payment = current_order.payments.amazon.first || current_order.payments.create
+    payment = current_order.payments.valid.amazon.first || current_order.payments.create
     payment.number = params[:order_reference]
     payment.payment_method = Spree::Gateway::Amazon.first
     payment.source ||= Spree::AmazonTransaction.create(
@@ -34,8 +34,8 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def delivery
-    current_order.state = 'cart'
     address = SpreeAmazon::Address.find(current_order.amazon_order_reference_id)
+    current_order.state = "address"
 
     if address
       current_order.email = "pending@amazon.com"
@@ -43,8 +43,7 @@ class Spree::AmazonController < Spree::StoreController
       update_current_order_address!(:bill_address, address)
 
       current_order.save!
-      current_order.next! # to Address
-      current_order.next! # to Delivery
+      current_order.next!
 
       current_order.reload
       render layout: false
@@ -54,45 +53,23 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def confirm
-    if current_order.update_from_params(params, permitted_checkout_attributes, request.headers.env)
-      order = SpreeAmazon::Order.find(current_order.amazon_order_reference_id)
-
-      current_order.email = order.email
-      if order.address
-        update_current_order_address!(:ship_address, order.address)
-      else
-        raise "There is a problem with your order"
+    if Spree::OrderUpdateAttributes.new(current_order, checkout_params, request_env: request.headers.env).apply
+      while current_order.next
       end
 
-      current_order.create_tax_charge!
-      current_order.reload
-
-      payment = current_order.payments.valid.amazon.first
-      payment.amount = current_order.total
-      payment.save!
-
-      order.total = current_order.total
-      order.currency = current_order.currency
-      order.save_total
-      order.confirm
-
-      # Remove the following line to enable the confirmation step.
-      # redirect_to amazon_order_complete_path(@order)
+      update_payment_amount!
+      current_order.next! unless current_order.confirm?
     else
-      render :edit
+      render action: :address
     end
   end
 
   def complete
     @order = current_order
     authorize!(:edit, @order, cookies.signed[:guest_token])
+    complete_amazon_order!
 
-    redirect_to root_path if @order.nil?
-    while(@order.next) do
-
-    end
-
-    if @order.completed?
+    if @order.complete
       @current_order = nil
       flash.notice = Spree.t(:order_processed_successfully)
       redirect_to spree.order_path(@order)
@@ -104,6 +81,30 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   private
+
+  def update_payment_amount!
+    payment = current_order.payments.valid.amazon.first
+    payment.amount = current_order.total
+    payment.save!
+  end
+
+  def complete_amazon_order!
+    amazon_order = SpreeAmazon::Order.new(
+      reference_id: current_order.amazon_order_reference_id,
+      total: current_order.total,
+      currency: current_order.currency
+    )
+    amazon_order.save_total
+    amazon_order.confirm
+
+    amazon_order.fetch
+    current_order.email = amazon_order.email
+    update_current_order_address!(:ship_address, amazon_order.address)
+  end
+
+  def checkout_params
+    params.require(:order).permit(permitted_checkout_attributes)
+  end
 
   def update_current_order_address!(address_type, amazon_address)
     new_address = Spree::Address.new address_attributes(amazon_address)
