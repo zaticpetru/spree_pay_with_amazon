@@ -68,11 +68,17 @@ module Spree
       capture(amount, amazon_checkout, gateway_options)
     end
 
-    def credit(amount, _credit_card, gateway_options={})
-      order = Spree::Order.find_by(:number => gateway_options[:order_id].split("-")[0])
-      load_amazon_mws(order.amazon_order_reference_id)
-      capture_id = order.amazon_transaction.capture_id
-      response = @mws.refund(capture_id, gateway_options[:order_id], amount / 100.00, Spree::Config.currency)
+    def credit(amount, _response_code, gateway_options)
+      payment = gateway_options[:originator].payment
+      amazon_transaction = payment.source
+
+      load_amazon_mws(amazon_transaction.order_reference)
+      response = @mws.refund(
+        amazon_transaction.capture_id,
+        payment.number,
+        amount / 100.00,
+        payment.currency
+      )
       return ActiveMerchant::Billing::Response.new(true, "Success", response)
     end
 

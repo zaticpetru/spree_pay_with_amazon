@@ -44,7 +44,7 @@ module Spree
     end
 
     def can_credit?(payment)
-      (payment.pending? || payment.checkout?) && payment.amount < 0
+      payment.completed? && payment.credit_allowed > 0
     end
 
     def can_void?(payment)
@@ -52,7 +52,7 @@ module Spree
     end
 
     def can_close?(payment)
-      !payment.closed?
+      payment.pending?
     end
 
     def actions
