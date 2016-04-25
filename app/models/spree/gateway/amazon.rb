@@ -68,7 +68,7 @@ module Spree
       capture(amount, amazon_checkout, gateway_options)
     end
 
-    def credit(amount, _response_code, gateway_options)
+    def credit(amount, _response_code, gateway_options = {})
       payment = gateway_options[:originator].payment
       amazon_transaction = payment.source
 

@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Spree::Gateway::Amazon do
   describe "#credit" do
-    it "calls credit on mws with the correct parameters" do
+    it "calls refund on mws with the correct parameters" do
       gateway = create_gateway
       mws = stub_mws
       amazon_transaction = create(:amazon_transaction, capture_id: "CAPTURE_ID")
