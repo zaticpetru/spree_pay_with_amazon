@@ -10,7 +10,6 @@ Installation
 Add spree_amazon_payments to your Gemfile:
 
 ```
-gem 'spree_social', github: 'spree-contrib/spree_social', branch: '3-0-stable'
 gem 'spree_amazon_payments', github: 'boomerdigital/spree_pay_with_amazon'
 ```
 
@@ -19,7 +18,6 @@ Bundle your dependencies and run the installation generator:
 ```
 bundle
 bundle exec rails g spree_amazon_payments:install
-bundle exec rails g spree_social:install
 ```
 
 Registration
