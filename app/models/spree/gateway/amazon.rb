@@ -90,15 +90,6 @@ module Spree
       return ActiveMerchant::Billing::Response.new(true, "Success", response)
     end
 
-    def close(amount, amazon_checkout, gateway_options={})
-      order = Spree::Order.find_by(:number => gateway_options[:order_id].split("-")[0])
-      load_amazon_mws(order.amazon_order_reference_id)
-
-      authorization_id = order.amazon_transaction.authorization_id
-      response = @mws.close(authorization_id)
-      return ActiveMerchant::Billing::Response.new(true, "Success", response)
-    end
-
     private
 
     def load_amazon_mws(reference)
