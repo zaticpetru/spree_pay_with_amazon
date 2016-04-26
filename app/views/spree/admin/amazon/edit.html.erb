@@ -6,6 +6,7 @@
 <%# @copyright   Copyright (c) 2014 Amazon.com %>
 <%# @license     http://opensource.org/licenses/Apache-2.0  Apache License, Version 2.0 %>
 <%# %>
+<%= render :partial => 'spree/admin/shared/configuration_menu' %>
 
 <% content_for :page_title do %>
   <%= Spree.t(:amazon_settings) %>
@@ -17,27 +18,27 @@
     <fieldset class="general no-border-top">
       <div class="form-group">
         <%= label_tag "Amazon Client Id" %>
-        <%= text_field_tag :amazon_client_id, Spree::Config[:amazon_client_id], class: 'form-control' %>
+        <%= text_field_tag :amazon_client_id, Spree::Config[:amazon_client_id], class: 'fullwidth' %>
       </div>
 
       <div class="form-group">
         <%= label_tag "Amazon Seller Id" %>
-        <%= text_field_tag :amazon_merchant_id, Spree::Config[:amazon_merchant_id], class: 'form-control' %>
+        <%= text_field_tag :amazon_merchant_id, Spree::Config[:amazon_merchant_id], class: 'fullwidth' %>
       </div>
 
       <div class="form-group">
         <%= label_tag "Amazon MWS Access Key" %>
-        <%= text_field_tag :amazon_aws_access_key_id, Spree::Config[:amazon_aws_access_key_id], class: 'form-control' %>
+        <%= text_field_tag :amazon_aws_access_key_id, Spree::Config[:amazon_aws_access_key_id], class: 'fullwidth' %>
       </div>
 
       <div class="form-group">
         <%= label_tag "Amazon MWS Secret Key" %>
-        <%= text_field_tag :amazon_aws_secret_access_key, Spree::Config[:amazon_aws_secret_access_key], class: 'form-control' %>
+        <%= text_field_tag :amazon_aws_secret_access_key, Spree::Config[:amazon_aws_secret_access_key], class: 'fullwidth' %>
       </div>
 
       <div class="form-group">
         <%= label_tag "Amazon Callback Url" %>
-        <%= text_field_tag :amazon_callback_url, @amazon_callback_url, class: 'form-control', disabled: true %>
+        <%= text_field_tag :amazon_callback_url, @amazon_callback_url, class: 'fullwidth', disabled: true %>
       </div>
 
       <div class="form-actions" data-hook="buttons">
