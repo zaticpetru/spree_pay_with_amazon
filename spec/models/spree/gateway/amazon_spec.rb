@@ -1,10 +1,21 @@
 require 'spec_helper'
 
 describe Spree::Gateway::Amazon do
+  let(:payment_method) { Spree::Gateway::Amazon.create!(name: 'Amazon', preferred_test_mode: true) }
+  let(:order) { create(:order_with_line_items, state: 'delivery') }
+  let(:payment_source) { Spree::AmazonTransaction.create!(order_id: order.id, order_reference: 'REFERENCE') }
+  let!(:payment) do
+    create(:payment,
+           order: order,
+           payment_method: payment_method,
+           source: payment_source,
+           amount: order.total)
+  end
+  let(:mws) { stub_mws }
+  
   describe "#credit" do
     it "calls refund on mws with the correct parameters" do
       gateway = create_gateway
-      mws = stub_mws
       amazon_transaction = create(:amazon_transaction, capture_id: "CAPTURE_ID")
       payment = create(:payment, source: amazon_transaction, amount: 30.0, payment_method: gateway)
       refund = create(:refund, payment: payment, amount: 30.0)
@@ -17,12 +28,12 @@ describe Spree::Gateway::Amazon do
 
     let!(:refund) { create(:refund, payment: payment, amount: payment.amount) }
       it 'succeeds' do
-         response = build_mws_refund_response(state: 'Pending', total: order.total)
-         expect(payment_method.send(:load_amazon_mws, 'REFERENCE')).to receive(:refund).and_return(response)
+      response = build_mws_refund_response(state: 'Pending', total: order.total)
+      expect(mws).to receive(:refund).and_return(response)
 
-         auth = payment_method.credit(order.total, payment_source, { originator: refund })
-         expect(auth).to be_success
-       end
+      auth = payment_method.credit(order.total, payment_source, { originator: refund })
+      expect(auth).to be_success
+    end
   end
 
   describe '#void' do
@@ -42,7 +53,7 @@ describe Spree::Gateway::Amazon do
       it 'refund succeeds' do
         payment.order.amazon_transaction.update_attributes(capture_id: 'P01-1234567-1234567-0000002')
         response = build_mws_refund_response(state: 'Pending', total: order.total)
-        expect(payment_method.send(:load_amazon_mws, 'REFERENCE')).to receive(:refund).and_return(response)
+        expect(mws).to receive(:refund).and_return(response)
 
         auth = payment_method.void('', {order_id: payment.send(:gateway_order_id)})
         expect(auth).to be_success
@@ -64,7 +75,7 @@ describe Spree::Gateway::Amazon do
 
     it "succeeds" do
       response = build_mws_auth_response(state: 'Open', total: order.total)
-      expect(payment_method.send(:load_amazon_mws, 'REFERENCE')).to receive(:authorize).and_return(response)
+      expect(mws).to receive(:authorize).and_return(response)
 
       auth = payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
       expect(auth).to be_success
@@ -85,7 +96,7 @@ describe Spree::Gateway::Amazon do
 
     it 'succeeds' do
       response = build_mws_capture_response(state: 'Completed', total: order.total)
-      expect(payment_method.send(:load_amazon_mws, 'REFERENCE')).to receive(:capture).and_return(response)
+      expect(mws).to receive(:capture).and_return(response)
 
       auth = payment_method.capture(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
       expect(auth).to be_success
@@ -156,7 +167,7 @@ describe Spree::Gateway::Amazon do
             "RefundReferenceId" => "test_refund_1",
             "SellerRefundNote" => "Lorem ipsum",
             "RefundType" => "SellerInitiated",
-            "RefundedAmount" => {
+           "RefundedAmount" => {
               "CurrencyCode" => "USD",
               "Amount" => total
             },
@@ -184,7 +195,7 @@ describe Spree::Gateway::Amazon do
       }
     }
   end
-
+    
   def stub_mws
     mws = instance_double(AmazonMws)
     allow(AmazonMws).to receive(:new).and_return(mws)

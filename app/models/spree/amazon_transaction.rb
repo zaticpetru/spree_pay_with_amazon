@@ -48,7 +48,7 @@ module Spree
     end
 
     def can_void?(payment)
-      !payment.failed? && !payment.void? && !payment.completed?
+      payment.pending?
     end
 
     def actions
