@@ -14,6 +14,40 @@ describe Spree::Gateway::Amazon do
 
       expect(mws).to have_received(:refund).with("CAPTURE_ID", payment.number, 30.0, "USD")
     end
+
+    let!(:refund) { create(:refund, payment: payment, amount: payment.amount) }
+      it 'succeeds' do
+         response = build_mws_refund_response(state: 'Pending', total: order.total)
+         expect(payment_method.send(:load_amazon_mws, 'REFERENCE')).to receive(:refund).and_return(response)
+
+         auth = payment_method.credit(order.total, payment_source, { originator: refund })
+         expect(auth).to be_success
+       end
+  end
+
+  describe '#void' do
+    describe 'payment has not yet been captured' do
+      it 'cancel succeeds' do
+        response = build_mws_void_response
+        expect(payment_method.send(:load_amazon_mws, 'REFERENCE')).to receive(:cancel).and_return(response)
+
+        auth = payment_method.void('', {order_id: payment.send(:gateway_order_id)})
+        expect(auth).to be_success
+      end
+    end
+
+    describe 'payment has been previously captured' do
+      let!(:refund) { create(:refund, payment: payment, amount: payment.amount) }
+
+      it 'refund succeeds' do
+        payment.order.amazon_transaction.update_attributes(capture_id: 'P01-1234567-1234567-0000002')
+        response = build_mws_refund_response(state: 'Pending', total: order.total)
+        expect(payment_method.send(:load_amazon_mws, 'REFERENCE')).to receive(:refund).and_return(response)
+
+        auth = payment_method.void('', {order_id: payment.send(:gateway_order_id)})
+        expect(auth).to be_success
+      end
+    end
   end
 
   describe '#authorize' do
@@ -49,7 +83,7 @@ describe Spree::Gateway::Amazon do
              amount: order.total)
     end
 
-    it 'succeds' do
+    it 'succeeds' do
       response = build_mws_capture_response(state: 'Completed', total: order.total)
       expect(payment_method.send(:load_amazon_mws, 'REFERENCE')).to receive(:capture).and_return(response)
 
@@ -137,6 +171,15 @@ describe Spree::Gateway::Amazon do
             "CreationTimestamp" => "2012-11-05T19:10:16Z"
           }
         },
+        "ResponseMetadata" => { "RequestId" => "b4ab4bc3-c9ea-44f0-9a3d-67cccef565c6" }
+      }
+    }
+  end
+
+  def build_mws_void_response
+    {
+      "CancelOrderReferenceResponse" => {
+        "CancelOrderReferenceResult"=> nil,
         "ResponseMetadata" => { "RequestId" => "b4ab4bc3-c9ea-44f0-9a3d-67cccef565c6" }
       }
     }
