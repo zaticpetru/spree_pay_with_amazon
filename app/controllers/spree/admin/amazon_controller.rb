@@ -8,17 +8,15 @@
 #
 ##
 class Spree::Admin::AmazonController < Spree::Admin::BaseController
-  respond_to :html
-
   def edit
-    @amazon_callback_url = "#{root_url}amazon_callback"
   end
 
   def update
-    Spree::Config[:amazon_client_id]=params[:amazon_client_id]
-    Spree::Config[:amazon_merchant_id] = params[:amazon_merchant_id]
-    Spree::Config[:amazon_aws_access_key_id] = params[:amazon_aws_access_key_id]
-    Spree::Config[:amazon_aws_secret_access_key] = params[:amazon_aws_secret_access_key]
+    params.each do |key, value|
+      next unless SpreeAmazon::Config.has_preference? key
+      SpreeAmazon::Config[key] = value
+    end
+
     flash[:success] = Spree.t(:successfully_updated, :resource => Spree.t(:amazon_settings))
     redirect_to edit_admin_amazon_path
   end
