@@ -126,6 +126,13 @@ class AmazonMws
       })
   end
 
+  def cancel(ref_number)
+    process({
+      "Action" => "CancelOrderReference",
+      "AmazonOrderReferenceId" => ref_number
+      })
+  end
+
   private
 
   def default_hash

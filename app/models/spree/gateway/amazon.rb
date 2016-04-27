@@ -86,7 +86,13 @@ module Spree
       order = Spree::Order.find_by(:number => gateway_options[:order_id].split("-")[0])
       load_amazon_mws(order.amazon_order_reference_id)
       capture_id = order.amazon_transaction.capture_id
-      response = @mws.refund(capture_id, gateway_options[:order_id], order.total, Spree::Config.currency)
+
+      if capture_id.nil?
+        response = @mws.cancel(order.amazon_transaction.order_reference)
+      else
+        response = @mws.refund(capture_id, gateway_options[:order_id], order.total, Spree::Config.currency)
+      end
+
       return ActiveMerchant::Billing::Response.new(true, "Success", response)
     end
 

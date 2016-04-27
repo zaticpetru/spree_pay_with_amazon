@@ -48,11 +48,11 @@ module Spree
     end
 
     def can_void?(payment)
-      false
+      !payment.failed? && !payment.void? && !payment.completed?
     end
 
     def actions
-      %w{capture credit}
+      %w{capture credit void}
     end
 
   end
