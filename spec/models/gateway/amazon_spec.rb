@@ -2,12 +2,14 @@ require 'spec_helper'
 
 describe Spree::Gateway::Amazon do
   let(:payment_method) { Spree::Gateway::Amazon.create!(name: 'Amazon', preferred_test_mode: true) }
-  let(:user) { create :user }
-  let(:order) { create(:order_with_line_items, state: 'delivery', user: user) }
-  let(:payment_source) { Spree::AmazonTransaction.create!(order_id: order.id, order_reference: 'REFERENCE')}
-  let(:payment) do
-    order.amazon_transactions.create(order_reference: 'ORDER_REFERENCE')
-    order.payments.create!(source: payment_source, amount: order.total)
+  let(:order) { create(:order_with_line_items, state: 'delivery') }
+  let(:payment_source) { Spree::AmazonTransaction.create!(order_id: order.id, order_reference: 'REFERENCE') }
+  let!(:payment) do
+    create(:payment,
+           order: order,
+           payment_method: payment_method,
+           source: payment_source,
+           amount: order.total)
   end
 
   context 'with a valid amazon payment' do
