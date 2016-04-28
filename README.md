@@ -1,6 +1,6 @@
 spree_pay_with_amazon
 ===================
-[![Circle CI](https://circleci.com/gh/boomerdigital/spree_pay_with_amazon.svg?style=svg)](https://circleci.com/gh/boomerdigital/spree_pay_with_amazon) [![Code Climate](https://codeclimate.com/github/boomerdigital/spree_pay_with_amazon/badges/gpa.svg)](https://codeclimate.com/github/boomerdigital/spree_pay_with_amazon)
+[![Circle CI](https://circleci.com/gh/boomerdigital/spree_pay_with_amazon.svg?style=svg)](https://circleci.com/gh/boomerdigital/spree_pay_with_amazon) [![Code Climate](https://codeclimate.com/github/boomerdigital/spree_pay_with_amazon/badges/gpa.svg)](https://codeclimate.com/github/boomerdigital/spree_pay_with_amazon) [![Test Coverage](https://codeclimate.com/github/boomerdigital/spree_pay_with_amazon/badges/coverage.svg)](https://codeclimate.com/github/boomerdigital/spree_pay_with_amazon/coverage)
 
 Add Pay with Amazon to your Spree Commerce solution.
 
