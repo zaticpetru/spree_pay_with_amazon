@@ -37,9 +37,17 @@ end
 class AmazonMws
   require 'httparty'
 
-  def initialize(number, test_mode)
+  def initialize(number, test_mode=(test_mode_not_passed=true; nil), gateway: (gateway_not_passed=true; nil))
+    if gateway_not_passed
+      Spree::Deprecation.warn("AmazonMws.new now requires a gateway. Defaulting to the first Amazon gateway. In the future this will raise an error.", caller)
+      gateway = Spree::Gateway::Amazon.first!
+    end
+    if !test_mode_not_passed # "if test_mode_passed"
+      Spree::Deprecation.warn("The test_mode param is now ignored and is obtained from the gateway. In the future this will raise an error.", caller)
+    end
+
     @number = number
-    @test_mode = test_mode
+    @gateway = gateway
   end
 
 
@@ -137,8 +145,8 @@ class AmazonMws
 
   def default_hash
     {
-      "AWSAccessKeyId"=>SpreeAmazon::Config[:aws_access_key_id],
-      "SellerId"=>SpreeAmazon::Config[:merchant_id],
+      "AWSAccessKeyId" => @gateway.preferred_aws_access_key_id,
+      "SellerId" => @gateway.preferred_merchant_id,
       "PlatformId"=>"A31NP5KFHXSFV1",
       "SignatureMethod"=>"HmacSHA256",
       "SignatureVersion"=>"2",
@@ -149,14 +157,14 @@ class AmazonMws
 
   def process(hash)
     hash = default_hash.reverse_merge(hash)
-    sandbox_str = if @test_mode
+    sandbox_str = if @gateway.preferred_test_mode
                     'OffAmazonPayments_Sandbox'
                   else
                     'OffAmazonPayments'
                   end
     query_string = hash.sort.map { |k, v| "#{k}=#{ custom_escape(v) }" }.join("&")
     message = ["POST", "mws.amazonservices.com", "/#{sandbox_str}/2013-01-01", query_string].join("\n")
-    query_string += "&Signature=" + custom_escape(Base64.encode64(OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, SpreeAmazon::Config[:aws_secret_access_key], message)).strip)
+    query_string += "&Signature=" + custom_escape(Base64.encode64(OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, @gateway.preferred_aws_secret_access_key, message)).strip)
     HTTParty.post("https://mws.amazonservices.com/#{sandbox_str}/2013-01-01", :body => query_string)
   end
 
