@@ -6,20 +6,26 @@
 <%# @copyright   Copyright (c) 2014 Amazon.com %>
 <%# @license     http://opensource.org/licenses/Apache-2.0  Apache License, Version 2.0 %>
 <%# %>
+
+<%
+  gateway = Spree::Gateway::Amazon.first
+%>
+
 <script type='text/javascript'>
   window.onAmazonLoginReady = function() {
-    amazon.Login.setClientId('<%= SpreeAmazon::Config[:client_id] %>');
+    amazon.Login.setClientId('<%= gateway.preferred_client_id] %>');
   };
 </script>
+
 <script type='text/javascript'
-  src='https://static-na.payments-amazon.com/OffAmazonPayments/us/<%= Spree::Gateway::Amazon.first.preferred_test_mode ? 'sandbox/' : '' %>js/Widgets.js?sellerId=<%= SpreeAmazon::Config[:merchant_id] %>'>
+  src='https://static-na.payments-amazon.com/OffAmazonPayments/us/<%= gateway.preferred_test_mode ? 'sandbox/' : '' %>js/Widgets.js?sellerId=<%= gateway.preferred_merchant_id %>'>
 </script>
 
 <div id="AmazonPayButton"></div>
 
 <script type="text/javascript">
   var authRequest;
-  OffAmazonPayments.Button("AmazonPayButton", "<%= SpreeAmazon::Config[:merchant_id] %>", {
+  OffAmazonPayments.Button("AmazonPayButton", "<%= gateway.preferred_merchant_id %>", {
     type: "PwA",
         authorization: function() {
       loginOptions =
