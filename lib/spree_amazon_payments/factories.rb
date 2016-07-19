@@ -13,4 +13,9 @@ FactoryGirl.define do
     capture_id "CAPTURE_ID"
     order_reference "ORDER_REFERENCE"
   end
+
+  factory :amazon_gateway, parent: :payment_method, class: Spree::Gateway::Amazon do
+    sequence(:name) { |n| "Amazon Gateway #{n}" }
+    preferred_test_mode true
+  end
 end
