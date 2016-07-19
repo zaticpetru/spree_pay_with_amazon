@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Spree::AmazonController do
-  before { Spree::Gateway::Amazon.create!(name: 'Amazon', preferred_test_mode: true) }
+  let!(:gateway) { create(:amazon_gateway) }
 
   describe "GET #address" do
     it "sets the order to the address state" do
@@ -264,7 +264,8 @@ describe Spree::AmazonController do
 
   def build_amazon_order(attributes = {})
     defaults = {
-      email: 'mmurdock@doe.com'
+      email: 'mmurdock@doe.com',
+      gateway: gateway,
     }
     SpreeAmazon::Order.new defaults.merge(attributes)
   end

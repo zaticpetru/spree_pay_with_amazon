@@ -11,18 +11,19 @@
 
   <script type='text/javascript'>
     window.onAmazonLoginReady = function() {
-      amazon.Login.setClientId('<%= SpreeAmazon::Config[:client_id] %>');
+      amazon.Login.setClientId('<%= @amazon_gateway.preferred_client_id %>');
       $('#continue_to_delivery').click();
     };
   </script>
-  <script type='text/javascript'
-    src='https://static-na.payments-amazon.com/OffAmazonPayments/us/<%= Spree::Gateway::Amazon.first.preferred_test_mode ? 'sandbox/' : '' %>js/Widgets.js?sellerId=<%= SpreeAmazon::Config[:merchant_id] %>'>
+
+<script type='text/javascript'
+    src='https://static-na.payments-amazon.com/OffAmazonPayments/us/<%= @amazon_gateway.preferred_test_mode ? 'sandbox/' : '' %>js/Widgets.js?sellerId=<%= @amazon_gateway.preferred_merchant_id %>'>
   </script>
 
   <script>
     $( document ).ready(function() {
       new OffAmazonPayments.Widgets.AddressBook({
-        sellerId: '<%= SpreeAmazon::Config[:merchant_id] %>',
+        sellerId: '<%= @amazon_gateway.preferred_merchant_id %>',
         agreementType: 'orderreference',
         onOrderReferenceCreate: function(orderReference) {
           order_reference = orderReference.getAmazonOrderReferenceId();

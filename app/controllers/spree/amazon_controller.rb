@@ -15,6 +15,8 @@ class Spree::AmazonController < Spree::StoreController
   respond_to :json
 
   def address
+    @amazon_gateway = Spree::Gateway::Amazon.first
+
     current_order.state = 'address'
     current_order.save!
   end
@@ -34,7 +36,11 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def delivery
-    address = SpreeAmazon::Address.find(current_order.amazon_order_reference_id)
+    address = SpreeAmazon::Address.find(
+      current_order.amazon_order_reference_id,
+      gateway: Spree::Gateway::Amazon.first,
+    )
+
     current_order.state = "address"
 
     if address
