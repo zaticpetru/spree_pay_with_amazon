@@ -9,6 +9,10 @@
 ##
 module Spree
   class Gateway::Amazon < Gateway
+    preference :client_id, :string
+    preference :merchant_id, :string
+    preference :aws_access_key_id, :string
+    preference :aws_secret_access_key, :string
 
     has_one :provider
 
