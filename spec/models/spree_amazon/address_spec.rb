@@ -1,6 +1,8 @@
 require 'spec_helper'
 
 describe SpreeAmazon::Address do
+  let(:gateway) { create(:amazon_gateway) }
+
   describe '.find' do
     it "returns a new address if the order has a Physical address" do
       address_data = build_address_response(
@@ -14,7 +16,7 @@ describe SpreeAmazon::Address do
       )
       stub_amazon_response("ORDER_REFERENCE", address_data)
 
-      address = SpreeAmazon::Address.find("ORDER_REFERENCE")
+      address = SpreeAmazon::Address.find("ORDER_REFERENCE", gateway: gateway)
 
       expect(address).to_not be_nil
       expect(address.city).to eq("Topeka")
@@ -29,7 +31,7 @@ describe SpreeAmazon::Address do
       address_data = build_address_response(nil)
       stub_amazon_response("ORDER_REFERENCE", address_data)
 
-      address = SpreeAmazon::Address.find("ORDER_REFERENCE")
+      address = SpreeAmazon::Address.find("ORDER_REFERENCE", gateway: gateway)
 
       expect(address).to be_nil
     end
@@ -65,7 +67,7 @@ describe SpreeAmazon::Address do
     mws = instance_double(AmazonMws)
     response = AmazonMwsOrderResponse.new(response_data)
     allow(mws).to receive(:fetch_order_data).and_return(response)
-    allow(AmazonMws).to receive(:new).with(order_reference, true)
+    allow(AmazonMws).to receive(:new).with(order_reference, gateway: gateway)
                                      .and_return(mws)
   end
 

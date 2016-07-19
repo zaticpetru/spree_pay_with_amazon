@@ -1,7 +1,11 @@
 class SpreeAmazon::Address
   class << self
-    def find(order_reference)
-      response = mws(order_reference).fetch_order_data
+    def find(order_reference, gateway: (gateway_not_passed=true; nil))
+      if gateway_not_passed
+        Spree::Deprecation.warn("SpreeAmazon::Address.find now requires a gateway. Defaulting to the first Amazon gateway. In the future this will raise an error.", caller)
+        gateway = Spree::Gateway::Amazon.first!
+      end
+      response = mws(order_reference, gateway: gateway).fetch_order_data
       from_response(response)
     end
 
@@ -14,12 +18,8 @@ class SpreeAmazon::Address
 
     private
 
-    def mws(order_reference)
-      AmazonMws.new(order_reference, in_test_mode?)
-    end
-
-    def in_test_mode?
-      Spree::Gateway::Amazon.first.preferred_test_mode
+    def mws(order_reference, gateway:)
+      AmazonMws.new(order_reference, gateway: gateway)
     end
 
     def attributes_from_response(response)
