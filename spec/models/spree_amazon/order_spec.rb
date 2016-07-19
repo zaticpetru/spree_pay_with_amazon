@@ -1,7 +1,9 @@
 require 'spec_helper'
 
 describe SpreeAmazon::Order do
-  before { Spree::Gateway::Amazon.create!(name: 'Amazon', preferred_test_mode: true) }
+
+  let!(:gateway) { create(:amazon_gateway) }
+
   describe '.find' do
     it "retrieves an order from MWS" do
       mws = stub_mws('ORDER_REFERENCE')
@@ -13,7 +15,7 @@ describe SpreeAmazon::Order do
       )
       allow(mws).to receive(:fetch_order_data).and_return(response)
 
-      order = SpreeAmazon::Order.find('ORDER_REFERENCE')
+      order = SpreeAmazon::Order.find('ORDER_REFERENCE', gateway: gateway)
 
       expect(order.reference_id).to eq('ORDER_REFERENCE')
       expect(order.email).to eq('jane@doe.com')
@@ -95,13 +97,13 @@ describe SpreeAmazon::Order do
   end
 
   def build_order(attributes = {})
-    defaults = { reference_id: 'ORDER_REFERENCE' }
+    defaults = { reference_id: 'ORDER_REFERENCE', gateway: gateway }
     described_class.new defaults.merge(attributes)
   end
 
   def stub_mws(order_reference)
     mws = instance_double(AmazonMws)
-    allow(AmazonMws).to receive(:new).with(order_reference, true)
+    allow(AmazonMws).to receive(:new).with(order_reference, gateway: gateway)
                                      .and_return(mws)
     mws
   end
