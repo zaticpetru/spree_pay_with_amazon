@@ -103,6 +103,31 @@ describe Spree::Gateway::Amazon do
     end
   end
 
+  describe '.for_currency' do
+    context 'when the currency exists and is active' do
+      let!(:gbp_inactive_gateway) { create(:amazon_gateway, active: false, preferred_currency: 'GBP') }
+      let!(:gbp_active_gateway) { create(:amazon_gateway, preferred_currency: 'GBP') }
+
+      it 'finds the active gateway' do
+        expect(Spree::Gateway::Amazon.for_currency('GBP')).to eq(gbp_active_gateway)
+      end
+    end
+
+    context 'when the currency exists but is not active' do
+      let!(:gbp_inactive_gateway) { create(:amazon_gateway, active: false, preferred_currency: 'GBP') }
+
+      it 'returns nil' do
+        expect(Spree::Gateway::Amazon.for_currency('GBP')).to eq(nil)
+      end
+    end
+
+    context 'when the currency does not exist' do
+      it 'returns nil' do
+        expect(Spree::Gateway::Amazon.for_currency('ABC')).to eq(nil)
+      end
+    end
+  end
+
   def build_mws_auth_response(state:, total:)
     {
       "AuthorizeResponse" => {

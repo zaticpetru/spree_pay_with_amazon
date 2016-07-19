@@ -8,7 +8,7 @@
 <%# %>
 
 <%
-  gateway = Spree::Gateway::Amazon.first
+  gateway = Spree::Gateway::Amazon.for_currency(@order.currency)
 %>
 
 <script type='text/javascript'>

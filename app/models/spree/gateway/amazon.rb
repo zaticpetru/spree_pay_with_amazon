@@ -9,12 +9,17 @@
 ##
 module Spree
   class Gateway::Amazon < Gateway
+    preference :currency, :string, default: -> { Spree::Config.currency }
     preference :client_id, :string
     preference :merchant_id, :string
     preference :aws_access_key_id, :string
     preference :aws_secret_access_key, :string
 
     has_one :provider
+
+    def self.for_currency(currency)
+      where(active: true).detect { |gateway| gateway.preferred_currency == currency }
+    end
 
     def supports?(source)
       true
