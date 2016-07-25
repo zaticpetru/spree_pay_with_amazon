@@ -30,6 +30,29 @@ describe SpreeAmazon::Order do
       expect(order.state).to eq('Open')
       expect(order.total.money.to_f).to eq(30.0)
     end
+
+    context 'with an address_consent_token' do
+      it 'sends the token in the request' do
+        order = build_order(address_consent_token: 'token')
+        mws = stub_mws(order.reference_id, address_consent_token: 'token')
+        response = build_mws_response(
+          state: 'Open',
+          total: 30.0,
+          email: 'joe@doe.com',
+          reference_id: order.reference_id
+        )
+        allow(mws).to receive(:fetch_order_data).and_return(response)
+
+        order.fetch
+
+        expect(AmazonMws).to have_received(:new).
+          with(
+            order.reference_id,
+            gateway: gateway,
+            address_consent_token: 'token',
+          )
+      end
+    end
   end
 
   describe '#confirm' do
@@ -163,10 +186,15 @@ describe SpreeAmazon::Order do
     described_class.new defaults.merge(attributes)
   end
 
-  def stub_mws(order_reference)
+  def stub_mws(order_reference, address_consent_token: nil)
     mws = instance_double(AmazonMws)
-    allow(AmazonMws).to receive(:new).with(order_reference, gateway: gateway)
-                                     .and_return(mws)
+    allow(AmazonMws).to receive(:new).
+      with(
+        order_reference,
+        gateway: gateway,
+        address_consent_token: address_consent_token,
+      ).
+      and_return(mws)
     mws
   end
 end

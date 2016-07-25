@@ -37,6 +37,25 @@ describe SpreeAmazon::Address do
 
       expect(address).to be_nil
     end
+
+    context 'with an address_consent_token' do
+      it 'sends the token in the request' do
+        address_data = build_address_response(nil)
+        stub_amazon_response('ORDER_REFERENCE', address_data, address_consent_token: 'token')
+
+        SpreeAmazon::Address.find(
+          'ORDER_REFERENCE',
+          gateway: gateway,
+          address_consent_token: 'token',
+        )
+
+        expect(AmazonMws).to have_received(:new).with(
+          'ORDER_REFERENCE',
+          gateway: gateway,
+          address_consent_token: 'token',
+        )
+      end
+    end
   end
 
   describe "#first_name" do
@@ -64,13 +83,18 @@ describe SpreeAmazon::Address do
     end
   end
 
-  def stub_amazon_response(order_reference, response_data)
+  def stub_amazon_response(order_reference, response_data, address_consent_token: nil)
     Spree::Gateway::Amazon.create!(name: 'Amazon', preferred_test_mode: true)
     mws = instance_double(AmazonMws)
     response = AmazonMwsOrderResponse.new(response_data)
     allow(mws).to receive(:fetch_order_data).and_return(response)
-    allow(AmazonMws).to receive(:new).with(order_reference, gateway: gateway)
-                                     .and_return(mws)
+    allow(AmazonMws).to receive(:new).
+      with(
+        order_reference,
+        gateway: gateway,
+        address_consent_token: address_consent_token,
+      ).
+      and_return(mws)
   end
 
   def build_address_response(address_details)

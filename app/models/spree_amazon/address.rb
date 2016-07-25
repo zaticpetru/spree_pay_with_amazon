@@ -1,7 +1,11 @@
 class SpreeAmazon::Address
   class << self
-    def find(order_reference, gateway:)
-      response = mws(order_reference, gateway: gateway).fetch_order_data
+    def find(order_reference, gateway:, address_consent_token: nil)
+      response = mws(
+        order_reference,
+        gateway: gateway,
+        address_consent_token: address_consent_token,
+      ).fetch_order_data
       from_response(response)
     end
 
@@ -14,8 +18,12 @@ class SpreeAmazon::Address
 
     private
 
-    def mws(order_reference, gateway:)
-      AmazonMws.new(order_reference, gateway: gateway)
+    def mws(order_reference, gateway:, address_consent_token: nil)
+      AmazonMws.new(
+        order_reference,
+        gateway: gateway,
+        address_consent_token: address_consent_token,
+      )
     end
 
     def attributes_from_response(response)

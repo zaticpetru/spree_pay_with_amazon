@@ -2,7 +2,7 @@ class SpreeAmazon::Order
   class CloseFailure < StandardError; end
 
   attr_accessor :state, :total, :email, :address, :reference_id, :currency,
-                :gateway
+                :gateway, :address_consent_token
 
   def initialize(attributes)
     if !attributes.key?(:gateway)
@@ -51,7 +51,11 @@ class SpreeAmazon::Order
   end
 
   def mws
-    @mws ||= AmazonMws.new(reference_id, gateway: gateway)
+    @mws ||= AmazonMws.new(
+      reference_id,
+      gateway: gateway,
+      address_consent_token: address_consent_token,
+    )
   end
 
   def attributes_from_response(response)
