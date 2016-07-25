@@ -16,9 +16,7 @@
     };
   </script>
 
-<script type='text/javascript'
-    src='https://static-na.payments-amazon.com/OffAmazonPayments/us/<%= @amazon_gateway.preferred_test_mode ? 'sandbox/' : '' %>js/Widgets.js?sellerId=<%= @amazon_gateway.preferred_merchant_id %>'>
-  </script>
+<%= javascript_include_tag @amazon_gateway.widgets_url %>
 
   <script>
     $( document ).ready(function() {

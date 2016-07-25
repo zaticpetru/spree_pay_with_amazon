@@ -128,6 +128,22 @@ describe Spree::Gateway::Amazon do
     end
   end
 
+  describe '#api_url' do
+    let(:gbp_gateway) { create(:amazon_gateway, preferred_region: 'uk') }
+    let(:usd_gateway) { create(:amazon_gateway, preferred_region: 'us') }
+    it 'generates the url based on the region' do
+      expect(gbp_gateway.api_url).not_to eq(usd_gateway.api_url)
+    end
+  end
+
+  describe '#widgets_url' do
+    let(:gbp_gateway) { create(:amazon_gateway, preferred_region: 'uk') }
+    let(:usd_gateway) { create(:amazon_gateway, preferred_region: 'us') }
+    it 'generates the url based on the region' do
+      expect(gbp_gateway.widgets_url).not_to eq(usd_gateway.widgets_url)
+    end
+  end
+
   def build_mws_auth_response(state:, total:)
     {
       "AuthorizeResponse" => {

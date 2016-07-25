@@ -9,16 +9,41 @@
 ##
 module Spree
   class Gateway::Amazon < Gateway
+    REGIONS = %w(us uk de jp).freeze
+
     preference :currency, :string, default: -> { Spree::Config.currency }
     preference :client_id, :string
     preference :merchant_id, :string
     preference :aws_access_key_id, :string
     preference :aws_secret_access_key, :string
+    preference :region, :string, default: 'us'
 
     has_one :provider
 
+    validates :preferred_region, inclusion: { in: REGIONS }
+
     def self.for_currency(currency)
       where(active: true).detect { |gateway| gateway.preferred_currency == currency }
+    end
+
+    def api_url
+      sandbox = preferred_test_mode ? '_Sandbox' : ''
+      {
+        'us' => "https://mws.amazonservices.com/OffAmazonPayments#{sandbox}/2013-01-01",
+        'uk' => "https://mws-eu.amazonservices.com/OffAmazonPayments#{sandbox}/2013-01-01",
+        'de' => "https://mws-eu.amazonservices.com/OffAmazonPayments#{sandbox}/2013-01-01",
+        'jp' => "https://mws.amazonservices.jp/OffAmazonPayments#{sandbox}/2013-01-01",
+      }.fetch(preferred_region)
+    end
+
+    def widgets_url
+      sandbox = preferred_test_mode ? '/sandbox' : ''
+      {
+        'us' => "https://static-na.payments-amazon.com/OffAmazonPayments/us#{sandbox}/js/Widgets.js",
+        'uk' => "https://static-eu.payments-amazon.com/OffAmazonPayments/uk#{sandbox}/lpa/js/Widgets.js",
+        'de' => "https://static-eu.payments-amazon.com/OffAmazonPayments/de#{sandbox}/lpa/js/Widgets.js",
+        'jp' => "https://origin-na.ssl-images-amazon.com/images/G/09/EP/offAmazonPayments#{sandbox}/prod/lpa/js/Widgets.js",
+      }.fetch(preferred_region)
     end
 
     def supports?(source)
