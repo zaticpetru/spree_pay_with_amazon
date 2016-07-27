@@ -18,10 +18,6 @@ module SpreeAmazonPayments
       g.test_framework :rspec
     end
 
-    initializer "spree.amazon.config", :before => :load_config_initializers do |app|
-      SpreeAmazon::Config = SpreeAmazon::Configuration.new
-    end
-
     initializer "spree.gateway.payment_methods", :after => "spree.register.payment_methods" do |app|
       app.config.spree.payment_methods << Spree::Gateway::Amazon
     end

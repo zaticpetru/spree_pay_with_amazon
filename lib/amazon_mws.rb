@@ -37,15 +37,7 @@ end
 class AmazonMws
   require 'httparty'
 
-  def initialize(number, test_mode=(test_mode_not_passed=true; nil), gateway: (gateway_not_passed=true; nil))
-    if gateway_not_passed
-      Spree::Deprecation.warn("AmazonMws.new now requires a gateway. Defaulting to the first Amazon gateway. In the future this will raise an error.", caller)
-      gateway = Spree::Gateway::Amazon.first!
-    end
-    if !test_mode_not_passed # "if test_mode_passed"
-      Spree::Deprecation.warn("The test_mode param is now ignored and is obtained from the gateway. In the future this will raise an error.", caller)
-    end
-
+  def initialize(number, gateway:)
     @number = number
     @gateway = gateway
   end

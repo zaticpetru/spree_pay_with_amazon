@@ -1,10 +1,6 @@
 class SpreeAmazon::Address
   class << self
-    def find(order_reference, gateway: (gateway_not_passed=true; nil))
-      if gateway_not_passed
-        Spree::Deprecation.warn("SpreeAmazon::Address.find now requires a gateway. Defaulting to the first Amazon gateway. In the future this will raise an error.", caller)
-        gateway = Spree::Gateway::Amazon.first!
-      end
+    def find(order_reference, gateway:)
       response = mws(order_reference, gateway: gateway).fetch_order_data
       from_response(response)
     end
