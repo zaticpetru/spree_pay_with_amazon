@@ -73,7 +73,6 @@ class AmazonMws
       "AuthorizationReferenceId" => ref_number,
       "AuthorizationAmount.Amount" => total,
       "AuthorizationAmount.CurrencyCode" => currency,
-      "CaptureNow" => Spree::Config[:auto_capture],
       "TransactionTimeout" => 0
     })
   end
