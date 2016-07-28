@@ -17,3 +17,4 @@ en:
     merchant_id: Merchant ID
     aws_access_key_id: AWS Access Key ID
     aws_secret_access_key: AWS Secret Access Key
+    order_reference_id: Order Reference ID

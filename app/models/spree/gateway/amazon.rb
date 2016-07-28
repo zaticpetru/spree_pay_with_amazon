@@ -70,9 +70,13 @@ module Spree
       if amount < 0
         return ActiveMerchant::Billing::Response.new(true, "Success", {})
       end
-      order = Spree::Order.find_by(:number => gateway_options[:order_id].split("-")[0])
+      order_number, payment_number = gateway_options[:order_id].split("-", 2)
+      order = Spree::Order.find_by!(number: order_number)
+      payment = Spree::Payment.find_by!(number: payment_number)
+      authorization_reference_id = "#{payment.number}-#{random_suffix}"
+
       load_amazon_mws(order.amazon_order_reference_id)
-      response = @mws.authorize(gateway_options[:order_id], amount / 100.0, order.currency)
+      response = @mws.authorize(authorization_reference_id, amount / 100.0, order.currency)
       if response["ErrorResponse"]
         return ActiveMerchant::Billing::Response.new(false, response["ErrorResponse"]["Error"]["Message"], response)
       end
@@ -86,11 +90,15 @@ module Spree
       if amount < 0
         return credit(amount.abs, nil, nil, gateway_options)
       end
-      order = Spree::Order.find_by(:number => gateway_options[:order_id].split("-")[0])
+      order_number, payment_number = gateway_options[:order_id].split("-", 2)
+      order = Spree::Order.find_by!(number: order_number)
+      payment = Spree::Payment.find_by!(number: payment_number)
+      authorization_id = order.amazon_transaction.authorization_id
+      capture_reference_id = "#{payment.number}-#{random_suffix}"
       load_amazon_mws(order.amazon_order_reference_id)
 
-      authorization_id = order.amazon_transaction.authorization_id
-      response = @mws.capture(authorization_id, "C#{Time.now.to_i}", amount / 100.00, order.currency)
+      response = @mws.capture(authorization_id, capture_reference_id, amount / 100.00, order.currency)
+
       t = order.amazon_transaction
       t.capture_id = response.fetch("CaptureResponse", {}).fetch("CaptureResult", {}).fetch("CaptureDetails", {}).fetch("AmazonCaptureId", nil)
       t.save!
@@ -109,7 +117,7 @@ module Spree
       load_amazon_mws(amazon_transaction.order_reference)
       response = @mws.refund(
         amazon_transaction.capture_id,
-        payment.number,
+        "#{payment.number}-#{random_suffix}",
         amount / 100.00,
         payment.currency
       )
@@ -134,6 +142,12 @@ module Spree
 
     def load_amazon_mws(reference)
       @mws ||= AmazonMws.new(reference, gateway: self)
+    end
+
+    # A random string of lowercase alphanumeric characters (i.e. "base 36")
+    def random_suffix
+      length = 10
+      SecureRandom.random_number(36 ** length).to_s(36).rjust(length, '0')
     end
   end
 end

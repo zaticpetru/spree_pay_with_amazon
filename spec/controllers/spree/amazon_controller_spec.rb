@@ -250,7 +250,6 @@ describe Spree::AmazonController do
 
       payment = order.payments.amazon.first
       transaction = payment.source
-      expect(payment.number).to eq('ORDER_REFERENCE')
       expect(payment.payment_method).to be_a(Spree::Gateway::Amazon)
       expect(transaction.order_reference).to eq('ORDER_REFERENCE')
       expect(transaction.order_id).to eq(order.id)
