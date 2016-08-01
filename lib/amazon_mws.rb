@@ -7,6 +7,9 @@
 # @license     http://opensource.org/licenses/Apache-2.0  Apache License, Version 2.0
 #
 ##
+
+require 'pay_with_amazon'
+
 class AmazonMwsOrderResponse
   def initialize(response)
     @response = response.fetch("GetOrderReferenceDetailsResponse", {})
@@ -66,15 +69,16 @@ class AmazonMws
     })
   end
 
-  def authorize(ref_number, total, currency)
-    process({
-      "Action"=>"Authorize",
-      "AmazonOrderReferenceId" => @number,
-      "AuthorizationReferenceId" => ref_number,
-      "AuthorizationAmount.Amount" => total,
-      "AuthorizationAmount.CurrencyCode" => currency,
-      "TransactionTimeout" => 0
-    })
+  def authorize(ref_number, total, currency, seller_authorization_note: nil)
+    client.authorize(
+      @number,
+      ref_number,
+      total,
+      currency_code: currency,
+      transaction_timeout: 0, # 0 is synchronous mode
+      capture_now: false,
+      seller_authorization_note: seller_authorization_note,
+    )
   end
 
   def get_authorization_details(ref_number)
@@ -159,5 +163,16 @@ class AmazonMws
     val.to_s.gsub(/([^\w.~-]+)/) do
       "%" + $1.unpack("H2" * $1.bytesize).join("%").upcase
     end
+  end
+
+  def client
+    @client ||= PayWithAmazon::Client.new(
+      @gateway.preferred_merchant_id,
+      @gateway.preferred_aws_access_key_id,
+      @gateway.preferred_aws_secret_access_key,
+      region: @gateway.preferred_region.to_sym,
+      sandbox: @gateway.preferred_test_mode,
+      platform_id: nil, # TODO: Get a platform id for spree_amazon_payments
+    )
   end
 end

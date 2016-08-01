@@ -70,20 +70,59 @@ module Spree
       if amount < 0
         return ActiveMerchant::Billing::Response.new(true, "Success", {})
       end
+      
       order_number, payment_number = extract_order_and_payment_number(gateway_options)
       order = Spree::Order.find_by!(number: order_number)
       payment = Spree::Payment.find_by!(number: payment_number)
       authorization_reference_id = operation_unique_id(payment)
 
       load_amazon_mws(order.amazon_order_reference_id)
-      response = @mws.authorize(authorization_reference_id, amount / 100.0, order.currency)
-      if response["ErrorResponse"]
-        return ActiveMerchant::Billing::Response.new(false, response["ErrorResponse"]["Error"]["Message"], response)
+      response = nil
+      begin
+        response = @mws.authorize(
+          authorization_reference_id,
+          amount / 100.0,
+          order.currency,
+        )
+      rescue RuntimeError => e
+        raise Spree::Core::GatewayError.new(e.to_s)
       end
-      t = order.amazon_transaction
-      t.authorization_id = response["AuthorizeResponse"]["AuthorizeResult"]["AuthorizationDetails"]["AmazonAuthorizationId"]
-      t.save
-      return ActiveMerchant::Billing::Response.new(response["AuthorizeResponse"]["AuthorizeResult"]["AuthorizationDetails"]["AuthorizationStatus"]["State"] == "Open", "Success", response)
+
+      if response.success
+        parsed_response = Hash.from_xml(response.body)
+        auth_details = parsed_response.fetch('AuthorizeResponse').fetch('AuthorizeResult').fetch('AuthorizationDetails')
+        auth_status = auth_details.fetch('AuthorizationStatus')
+        auth_state = auth_status.fetch('State')
+
+        if auth_state == 'Open'
+          success = true
+          order.amazon_transaction.update!(
+            authorization_id: auth_details.fetch('AmazonAuthorizationId')
+          )
+          message = 'Success'
+        else
+          success = false
+          message = "Authorization failure: #{auth_status['ReasonCode']}"
+        end
+      else
+        success = false
+        parsed_response = Hash.from_xml(response.body) rescue nil
+        if parsed_response && parsed_response['ErrorResponse']
+          error = parsed_response.fetch('ErrorResponse').fetch('Error')
+          message = "#{response.code} #{error.fetch('Code')}: #{error.fetch('Message')}"
+        else
+          message = "#{response.code} #{response.body}"
+        end
+      end
+
+      ActiveMerchant::Billing::Response.new(
+        success,
+        message,
+        {
+          'response' => response,
+          'parsed_response' => parsed_response,
+        },
+      )
     end
 
     def capture(amount, amazon_checkout, gateway_options={})
