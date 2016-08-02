@@ -83,6 +83,7 @@ module Spree
           authorization_reference_id,
           amount / 100.0,
           order.currency,
+          seller_authorization_note: sandbox_authorize_simulation_string(order),
         )
       rescue RuntimeError => e
         raise Spree::Core::GatewayError.new(e.to_s)
@@ -203,6 +204,41 @@ module Spree
     def random_suffix
       length = 10
       SecureRandom.random_number(36 ** length).to_s(36).rjust(length, '0')
+    end
+
+    # Allows simulating errors in sandbox mode if the *last* name of the
+    # shipping address is "SandboxSimulation" and the *first* name is one of:
+    #
+    #   InvalidPaymentMethodHard-<minutes> (-<minutes> is optional. between 1-240.)
+    #   InvalidPaymentMethodSoft-<minutes> (-<minutes> is optional. between 1-240.)
+    #   AmazonRejected
+    #   TransactionTimedOut
+    #   ExpiredUnused-<minutes> (-<minutes> is optional. between 1-60.)
+    #   AmazonClosed
+    #
+    # E.g. a full name like: "AmazonRejected SandboxSimulation"
+    #
+    # See https://payments.amazon.com/documentation/lpwa/201956480 for more
+    # details on Amazon Payments Sandbox Simulations.
+    def sandbox_authorize_simulation_string(order)
+      return nil if !preferred_test_mode
+      return nil if order.ship_address.lastname != 'SandboxSimulation'
+
+      reason, minutes = order.ship_address.firstname.to_s.split('-', 2)
+      # minutes is optional and is only used for some of the reason codes
+      minutes ||= '1'
+
+      case reason
+      when 'InvalidPaymentMethodHard' then %({"SandboxSimulation": {"State":"Declined", "ReasonCode":"InvalidPaymentMethod", "PaymentMethodUpdateTimeInMins":#{minutes}}})
+      when 'InvalidPaymentMethodSoft' then %({"SandboxSimulation": {"State":"Declined", "ReasonCode":"InvalidPayment Method", "PaymentMethodUpdateTimeInMins":#{minutes}, "SoftDecline":"true"}})
+      when 'AmazonRejected'           then  '{"SandboxSimulation": {"State":"Declined", "ReasonCode":"AmazonRejected"}}'
+      when 'TransactionTimedOut'      then  '{"SandboxSimulation": {"State":"Declined", "ReasonCode":"TransactionTimedOut"}}'
+      when 'ExpiredUnused'            then %({"SandboxSimulation": {"State":"Closed", "ReasonCode":"ExpiredUnused", "ExpirationTimeInMins":#{minutes}}})
+      when 'AmazonClosed'             then  '{"SandboxSimulation": {"State":"Closed", "ReasonCode":"AmazonClosed"}}'
+      else
+        Rails.logger.error('"SandboxSimulation" was given as the shipping first name but the last name was not a valid reason code: ' + order.ship_address.firstname.inspect)
+        nil
+      end
     end
   end
 end

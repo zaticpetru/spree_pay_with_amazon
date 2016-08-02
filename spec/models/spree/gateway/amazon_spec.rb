@@ -163,6 +163,40 @@ describe Spree::Gateway::Amazon do
         }.to raise_error(Spree::Core::GatewayError, 'ServiceUnavailable or RequestThrottled')
       end
     end
+
+    describe 'sandbox simulation strings' do
+      let(:order) { create(:order_with_line_items, state: 'delivery', ship_address: ship_address) }
+      let(:ship_address) do
+        create(:address,
+          firstname: 'InvalidPaymentMethodHard',
+          lastname: 'SandboxSimulation',
+        )
+      end
+      let(:expected_note) { '{"SandboxSimulation": {"State":"Declined", "ReasonCode":"InvalidPaymentMethod", "PaymentMethodUpdateTimeInMins":1}}' }
+
+      it 'forwards the note to Amazon' do
+        expect(mws).to receive(:authorize).with(
+          /^#{payment.number}-\w+$/,
+          order.total/100,
+          order.currency,
+          seller_authorization_note: expected_note,
+        ).and_call_original
+
+        stub_auth_request(
+          expected_body: hash_including(
+            'Action' => 'Authorize',
+            'SellerAuthorizationNote' => expected_note,
+          ),
+          return_values: {
+            headers: {'content-type' => 'text/xml'},
+            status: 200,
+            body: build_mws_auth_declined_response(order: order),
+          },
+        )
+
+        payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+      end
+    end
   end
 
   describe '#purchase' do
