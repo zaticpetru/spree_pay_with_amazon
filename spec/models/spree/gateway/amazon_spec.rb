@@ -1,7 +1,14 @@
 require 'spec_helper'
 
 describe Spree::Gateway::Amazon do
-  let(:payment_method) { Spree::Gateway::Amazon.create!(name: 'Amazon', preferred_test_mode: true) }
+  let(:payment_method) do
+    create(:amazon_gateway,
+      preferred_client_id: '',
+      preferred_merchant_id: '',
+      preferred_aws_access_key_id: '',
+      preferred_aws_secret_access_key: '',
+    )
+  end
   let(:order) { create(:order_with_line_items, state: 'delivery') }
   let(:payment_source) { Spree::AmazonTransaction.create!(order_id: order.id, order_reference: 'REFERENCE') }
   let!(:payment) do
@@ -11,17 +18,16 @@ describe Spree::Gateway::Amazon do
            source: payment_source,
            amount: order.total)
   end
-  let(:mws) { stub_mws }
+  let(:mws) { payment_method.send(:load_amazon_mws, 'REFERENCE') }
   
   describe "#credit" do
     it "calls refund on mws with the correct parameters" do
-      gateway = create_gateway
       amazon_transaction = create(:amazon_transaction, capture_id: "CAPTURE_ID")
-      payment = create(:payment, source: amazon_transaction, amount: 30.0, payment_method: gateway)
+      payment = create(:payment, source: amazon_transaction, amount: 30.0, payment_method: payment_method)
       refund = create(:refund, payment: payment, amount: 30.0)
       allow(mws).to receive(:refund).and_return({})
 
-      gateway.credit(3000, nil, { originator: refund })
+      payment_method.credit(3000, nil, { originator: refund })
 
       expect(mws).to have_received(:refund).with("CAPTURE_ID", /^#{payment.number}-\w+$/, 30.0, "USD")
     end
@@ -127,15 +133,5 @@ describe Spree::Gateway::Amazon do
         "ResponseMetadata" => { "RequestId" => "b4ab4bc3-c9ea-44f0-9a3d-67cccef565c6" }
       }
     }
-  end
-    
-  def stub_mws
-    mws = instance_double(AmazonMws)
-    allow(AmazonMws).to receive(:new).and_return(mws)
-    mws
-  end
-
-  def create_gateway
-    described_class.create!(name: 'Amazon', preferred_test_mode: true)
   end
 end
