@@ -40,6 +40,20 @@ describe Spree::Gateway::Amazon do
     end
   end
 
+  describe '#purchase' do
+    context 'when authorization fails' do
+      let(:auth_result) { ActiveMerchant::Billing::Response.new(false, 'Error') }
+
+      it 'returns the authorization result' do
+        expect(payment_method).to receive(:authorize).and_return(auth_result)
+        expect(payment_method).not_to receive(:capture)
+
+        result = payment_method.purchase(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+        expect(result).to eq(auth_result)
+      end
+    end
+  end
+
   describe '#void' do
     describe 'payment has not yet been captured' do
       it 'cancel succeeds' do

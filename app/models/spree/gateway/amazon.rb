@@ -106,8 +106,12 @@ module Spree
     end
 
     def purchase(amount, amazon_checkout, gateway_options={})
-      authorize(amount, amazon_checkout, gateway_options)
-      capture(amount, amazon_checkout, gateway_options)
+      auth_result = authorize(amount, amazon_checkout, gateway_options)
+      if auth_result.success?
+        capture(amount, amazon_checkout, gateway_options)
+      else
+        auth_result
+      end
     end
 
     def credit(amount, _response_code, gateway_options = {})
