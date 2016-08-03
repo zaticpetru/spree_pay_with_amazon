@@ -90,6 +90,9 @@ RSpec.configure do |config|
   config.before :each do
     DatabaseCleaner.strategy = RSpec.current_example.metadata[:js] ? :truncation : :transaction
     DatabaseCleaner.start
+
+    # Without this the specs have a big pause while the Amazon gem retries on failures
+    allow_any_instance_of(PayWithAmazon::Request).to receive(:get_seconds_for_try_count).and_return(0)
   end
 
   # After each spec clean the database.

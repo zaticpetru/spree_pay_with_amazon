@@ -129,6 +129,19 @@ class AmazonMws
       })
   end
 
+  # Amazon's description:
+  # > Call the CloseOrderReference operation to indicate that a previously
+  # > confirmed order reference has been fulfilled (fully or partially) and that
+  # > you do not expect to create any new authorizations on this order
+  # > reference. You can still capture funds against open authorizations on the
+  # > order reference.
+  # > After you call this operation, the order reference is moved into the
+  # > Closed state.
+  # https://payments.amazon.com/documentation/apireference/201752000
+  def close_order_reference
+    client.close_order_reference(@amazon_order_reference_id)
+  end
+
   private
 
   def default_hash

@@ -2,7 +2,15 @@ require 'spec_helper'
 
 describe SpreeAmazon::Order do
 
-  let!(:gateway) { create(:amazon_gateway) }
+  let!(:gateway) do
+    create(:amazon_gateway,
+      preferred_currency: 'USD',
+      preferred_client_id: '',
+      preferred_merchant_id: '',
+      preferred_aws_access_key_id: '',
+      preferred_aws_secret_access_key: '',
+    )
+  end
 
   describe '.find' do
     it "retrieves an order from MWS" do
@@ -68,6 +76,56 @@ describe SpreeAmazon::Order do
     end
   end
 
+  describe '#close_order_reference!' do
+    let(:order) { build_order }
+
+    def stub_close_request(return_values:)
+      stub_request(
+        :post,
+        'https://mws.amazonservices.com/OffAmazonPayments_Sandbox/2013-01-01',
+      ).with(
+        body: hash_including(
+          'Action' => 'CloseOrderReference',
+          'AmazonOrderReferenceId' => 'ORDER_REFERENCE',
+        )
+      ).to_return(
+        return_values,
+      )
+    end
+
+    context 'when successful' do
+      it 'returns a success response' do
+        stub_close_request(
+          return_values: {
+            status: 200,
+            headers: {'content-type' => 'text/xml'},
+            body: build_mws_close_order_reference_success_response,
+          },
+        )
+
+        result = order.close_order_reference!
+
+        expect(result).to be_truthy
+      end
+    end
+
+    context 'when failed' do
+      it 'returns a failure response' do
+        stub_close_request(
+          return_values: {
+            status: 404,
+            headers: {'content-type' => 'text/xml'},
+            body: build_mws_close_order_reference_failure_response,
+          },
+        )
+
+        expect {
+          order.close_order_reference!
+        }.to raise_error(SpreeAmazon::Order::CloseFailure)
+      end
+    end
+  end
+
   def build_mws_response(state:, email:, total:, reference_id:)
     AmazonMwsOrderResponse.new(
       "GetOrderReferenceDetailsResponse" =>{
@@ -94,6 +152,30 @@ describe SpreeAmazon::Order do
         "ResponseMetadata"=>{"RequestId"=>"f390f7fb-0cdc-486c-974b-0db919cf82b3"}
       }
     )
+  end
+
+  def build_mws_close_order_reference_success_response
+    <<-XML.strip_heredoc
+      <CloseOrderReferenceResponse xmlns="http://mws.amazonservices.com/schema/OffAmazonPayments/2013-01-01">
+        <CloseOrderReferenceResult/>
+        <ResponseMetadata>
+          <RequestId>2766cf23-f468-4800-bdaf-4bd67c7799e5</RequestId>
+        </ResponseMetadata>
+      </CloseOrderReferenceResponse>
+    XML
+  end
+
+  def build_mws_close_order_reference_failure_response
+    <<-XML.strip_heredoc
+      <ErrorResponse xmlns="http://mws.amazonservices.com/schema/OffAmazonPayments/2013-01-01">
+        <Error>
+          <Type>Sender</Type>
+          <Code>InvalidOrderReferenceId</Code>
+          <Message>The OrderReferenceId ORDER_REFERENCE is invalid.</Message>
+        </Error>
+        <RequestId>f16e027d-4a2e-463f-b60c-0c7f61b13be7</RequestId>
+      </ErrorResponse>
+    XML
   end
 
   def build_order(attributes = {})

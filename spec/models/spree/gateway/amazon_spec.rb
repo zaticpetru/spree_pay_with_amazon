@@ -22,11 +22,6 @@ describe Spree::Gateway::Amazon do
   end
   let(:mws) { payment_method.send(:load_amazon_mws, 'REFERENCE') }
 
-  before do
-    # Without this the specs have a big pause while the Amazon gem retries on failures
-    allow_any_instance_of(PayWithAmazon::Request).to receive(:get_seconds_for_try_count).and_return(0)
-  end
-
   describe "#credit" do
     it "calls refund on mws with the correct parameters" do
       amazon_transaction = create(:amazon_transaction, capture_id: "CAPTURE_ID")

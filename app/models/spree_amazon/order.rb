@@ -1,4 +1,6 @@
 class SpreeAmazon::Order
+  class CloseFailure < StandardError; end
+
   class << self
     def find(order_reference, gateway:)
       new(reference_id: order_reference, gateway: gateway).fetch
@@ -23,6 +25,24 @@ class SpreeAmazon::Order
 
   def confirm
     mws.confirm_order
+  end
+
+  def close_order_reference!
+    response = mws.close_order_reference
+    parsed_response = Hash.from_xml(response.body) rescue nil
+
+    if response.success
+      true
+    else
+      parsed_response = Hash.from_xml(response.body) rescue nil
+      message = if parsed_response && parsed_response['ErrorResponse']
+        error = parsed_response.fetch('ErrorResponse').fetch('Error')
+        "#{response.code} #{error.fetch('Code')}: #{error.fetch('Message')}"
+      else
+        "#{response.code} #{response.body}"
+      end
+      raise CloseFailure, message
+    end
   end
 
   def save_total
