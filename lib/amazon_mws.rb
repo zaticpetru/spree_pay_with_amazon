@@ -122,13 +122,6 @@ class AmazonMws
       })
   end
 
-  def close(ref_number)
-    process({
-      "Action" => "CloseAuthorization",
-      "AmazonAuthorizationId" => ref_number
-      })
-  end
-
   def cancel(ref_number)
     process({
       "Action" => "CancelOrderReference",
