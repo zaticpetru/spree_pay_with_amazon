@@ -106,7 +106,11 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def complete_amazon_order!
-    amazon_order.set_order_reference_details(current_order.total)
+    amazon_order.set_order_reference_details(
+      current_order.total,
+      seller_order_id: current_order.number,
+      store_name: current_order.store.name,
+    )
     amazon_order.confirm
     amazon_order.fetch
     

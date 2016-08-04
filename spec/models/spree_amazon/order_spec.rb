@@ -68,14 +68,19 @@ describe SpreeAmazon::Order do
   end
 
    describe '#set_order_reference_details' do
-    def stub_details_request(return_values:)
+    let(:order) { build_order(total: 20.0, currency: 'USD') }
+
+    def stub_details_request(return_values:, request_params: {})
       stub_request(
         :post,
         'https://mws.amazonservices.com/OffAmazonPayments_Sandbox/2013-01-01',
       ).with(
         body: hash_including(
-          'Action' => 'SetOrderReferenceDetails',
-          'AmazonOrderReferenceId' => 'ORDER_REFERENCE',
+          {
+            'Action' => 'SetOrderReferenceDetails',
+            'AmazonOrderReferenceId' => 'ORDER_REFERENCE',
+            'OrderReferenceAttributes.OrderTotal.CurrencyCode' => order.currency,
+          }.merge(request_params)
         )
       ).to_return(
         return_values,
@@ -83,7 +88,6 @@ describe SpreeAmazon::Order do
     end
 
     it "saves the order details using MWS" do
-      order = build_order(total: 20.0, currency: 'USD')
       stub_details_request(
         return_values: {
           status: 200,
@@ -97,10 +101,34 @@ describe SpreeAmazon::Order do
       expect(response.success).to eq(true)
     end
 
+    it "saves additional options using MWS" do
+      stub_details_request(
+        request_params: {
+          'OrderReferenceAttributes.SellerNote' => 'some-seller-note',
+          'OrderReferenceAttributes.SellerOrderAttributes.CustomInformation' => 'some-custom-information',
+          'OrderReferenceAttributes.SellerOrderAttributes.SellerOrderId' => 'some-seller-order-id',
+          'OrderReferenceAttributes.SellerOrderAttributes.StoreName' => 'some-store-name',
+        },
+        return_values: {
+          status: 200,
+          headers: {'content-type' => 'text/xml'},
+          body: build_mws_set_order_reference_details_success_response(total: order.total),
+        }
+      )
+
+      response = order.set_order_reference_details(
+        order.total,
+        seller_note: 'some-seller-note',
+        seller_order_id: 'some-seller-order-id',
+        store_name: 'some-store-name',
+        custom_information: 'some-custom-information',
+      )
+
+      expect(response.success).to eq(true)
+    end
+
     context 'when it fails' do
       it 'returns a failure response' do
-        order = build_order(total: 20.0, currency: 'USD')
-
         stub_details_request(
           return_values: {
             status: 405,

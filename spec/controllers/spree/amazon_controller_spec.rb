@@ -161,7 +161,15 @@ describe Spree::AmazonController do
       stub_amazon_order
       set_current_order(order)
 
-      expect_any_instance_of(SpreeAmazon::Order).to receive(:set_order_reference_details).with(order.total).and_return(nil)
+      expect_any_instance_of(SpreeAmazon::Order).to(
+        receive(:set_order_reference_details).
+        with(
+          order.total,
+          seller_order_id: order.number,
+          store_name: order.store.name,
+        ).
+        and_return(nil)
+      )
       expect_any_instance_of(SpreeAmazon::Order).to receive(:confirm)
 
       spree_post :complete

@@ -60,7 +60,14 @@ class AmazonMws
     )
   end
 
-  def set_order_reference_details(total)
+  def set_order_reference_details(total, options={})
+    options.assert_valid_keys(
+      :seller_note,
+      :seller_order_id,
+      :store_name,
+      :custom_information,
+    )
+
     client.set_order_reference_details(@amazon_order_reference_id, total, options)
   end
 
