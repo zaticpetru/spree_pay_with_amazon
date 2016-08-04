@@ -95,8 +95,6 @@ class Spree::AmazonController < Spree::StoreController
   def amazon_order
     @amazon_order ||= SpreeAmazon::Order.new(
       reference_id: current_order.amazon_order_reference_id,
-      total: current_order.total,
-      currency: current_order.currency,
       gateway: gateway,
     )
   end
@@ -108,10 +106,10 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def complete_amazon_order!
-    amazon_order.save_total
+    amazon_order.set_order_reference_details(current_order.total)
     amazon_order.confirm
-
     amazon_order.fetch
+    
     current_order.email = amazon_order.email
     update_current_order_address!(:ship_address, amazon_order.address)
   end

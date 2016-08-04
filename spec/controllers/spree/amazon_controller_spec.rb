@@ -141,7 +141,7 @@ describe Spree::AmazonController do
         amazon_order
       }
       allow_any_instance_of(SpreeAmazon::Order).to receive(:confirm).and_return(nil)
-      allow_any_instance_of(SpreeAmazon::Order).to receive(:save_total).and_return(nil)
+      allow_any_instance_of(SpreeAmazon::Order).to receive(:set_order_reference_details).and_return(nil)
     end
 
     it "completes the spree order" do
@@ -161,7 +161,7 @@ describe Spree::AmazonController do
       stub_amazon_order
       set_current_order(order)
 
-      expect_any_instance_of(SpreeAmazon::Order).to receive(:save_total)
+      expect_any_instance_of(SpreeAmazon::Order).to receive(:set_order_reference_details).with(order.total).and_return(nil)
       expect_any_instance_of(SpreeAmazon::Order).to receive(:confirm)
 
       spree_post :complete

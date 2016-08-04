@@ -67,16 +67,53 @@ describe SpreeAmazon::Order do
     end
   end
 
-  describe '#save_total' do
+   describe '#set_order_reference_details' do
+    def stub_details_request(return_values:)
+      stub_request(
+        :post,
+        'https://mws.amazonservices.com/OffAmazonPayments_Sandbox/2013-01-01',
+      ).with(
+        body: hash_including(
+          'Action' => 'SetOrderReferenceDetails',
+          'AmazonOrderReferenceId' => 'ORDER_REFERENCE',
+        )
+      ).to_return(
+        return_values,
+      )
+    end
+
     it "saves the order details using MWS" do
       order = build_order(total: 20.0, currency: 'USD')
-      mws = stub_mws(order.reference_id)
-      allow(mws).to receive(:set_order_data)
+      stub_details_request(
+        return_values: {
+          status: 200,
+          headers: {'content-type' => 'text/xml'},
+          body: build_mws_set_order_reference_details_success_response(total: order.total),
+        }
+      )
 
-      order.save_total
+      response = order.set_order_reference_details(order.total)
 
-      expect(mws).to have_received(:set_order_data).with(20.0, 'USD')
+      expect(response.success).to eq(true)
     end
+
+    context 'when it fails' do
+      it 'returns a failure response' do
+        order = build_order(total: 20.0, currency: 'USD')
+
+        stub_details_request(
+          return_values: {
+            status: 405,
+            headers: {'content-type' => 'text/xml'},
+            body: build_mws_set_order_reference_details_failure_response,
+          }
+        )
+
+        response = order.set_order_reference_details(order.total)
+
+        expect(response.success).to eq(false)
+      end
+     end
   end
 
   describe '#close_order_reference!' do
@@ -177,6 +214,55 @@ describe SpreeAmazon::Order do
           <Message>The OrderReferenceId ORDER_REFERENCE is invalid.</Message>
         </Error>
         <RequestId>f16e027d-4a2e-463f-b60c-0c7f61b13be7</RequestId>
+      </ErrorResponse>
+    XML
+  end
+
+  def build_mws_set_order_reference_details_success_response(total:)
+    <<-XML.strip_heredoc
+      <SetOrderReferenceDetailsResponse xmlns="http://mws.amazonservices.com/schema/OffAmazonPayments/2013-01-01">
+        <SetOrderReferenceDetailsResult>
+          <OrderReferenceDetails>
+            <OrderReferenceStatus>
+              <State>Draft</State>
+            </OrderReferenceStatus>
+            <OrderLanguage>en-GB</OrderLanguage>
+            <Destination>
+              <DestinationType>Physical</DestinationType>
+              <PhysicalDestination>
+                <City>London</City>
+                <CountryCode>GB</CountryCode>
+                <PostalCode>W2 4RJ</PostalCode>
+              </PhysicalDestination>
+            </Destination>
+            <ExpirationTimestamp>2017-01-31T20:18:49.767Z</ExpirationTimestamp>
+            <SellerOrderAttributes/>
+            <OrderTotal>
+              <CurrencyCode>USD</CurrencyCode>
+              <Amount>#{total}</Amount>
+            </OrderTotal>
+            <ReleaseEnvironment>Sandbox</ReleaseEnvironment>
+            <AmazonOrderReferenceId>S02-4397435-2281620</AmazonOrderReferenceId>
+            <CreationTimestamp>2016-08-04T20:18:49.767Z</CreationTimestamp>
+            <RequestPaymentAuthorization>false</RequestPaymentAuthorization>
+          </OrderReferenceDetails>
+        </SetOrderReferenceDetailsResult>
+        <ResponseMetadata>
+          <RequestId>4df5e1b5-51ec-4d9c-8940-28c016a8bbed</RequestId>
+        </ResponseMetadata>
+      </SetOrderReferenceDetailsResponse>
+    XML
+  end
+
+  def build_mws_set_order_reference_details_failure_response
+    <<-XML.strip_heredoc
+      <ErrorResponse xmlns="http://mws.amazonservices.com/schema/OffAmazonPayments/2013-01-01">
+        <Error>
+          <Type>Sender</Type>
+          <Code>OrderReferenceNotModifiable</Code>
+          <Message>OrderReference ORDER_REFERENCE is not in draft state and cannot be modified with the request submitted by you.</Message>
+        </Error>
+        <RequestId>4a23e06f-338f-a495-a463-f2eb1a537a9f</RequestId>
       </ErrorResponse>
     XML
   end

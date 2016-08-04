@@ -60,6 +60,10 @@ class AmazonMws
     )
   end
 
+  def set_order_reference_details(total)
+    client.set_order_reference_details(@amazon_order_reference_id, total, options)
+  end
+
   def set_order_data(total, currency)
     process({
       "Action"=>"SetOrderReferenceDetails",

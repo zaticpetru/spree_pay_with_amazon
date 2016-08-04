@@ -38,8 +38,8 @@ class SpreeAmazon::Order
     end
   end
 
-  def save_total
-    mws.set_order_data(total, currency)
+  def set_order_reference_details(total)
+    mws.set_order_reference_details(total)
   end
 
   private
