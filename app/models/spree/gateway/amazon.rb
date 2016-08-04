@@ -70,10 +70,10 @@ module Spree
       if amount < 0
         return ActiveMerchant::Billing::Response.new(true, "Success", {})
       end
-      order_number, payment_number = gateway_options[:order_id].split("-", 2)
+      order_number, payment_number = extract_order_and_payment_number(gateway_options)
       order = Spree::Order.find_by!(number: order_number)
       payment = Spree::Payment.find_by!(number: payment_number)
-      authorization_reference_id = "#{payment.number}-#{random_suffix}"
+      authorization_reference_id = operation_unique_id(payment)
 
       load_amazon_mws(order.amazon_order_reference_id)
       response = @mws.authorize(authorization_reference_id, amount / 100.0, order.currency)
@@ -90,11 +90,11 @@ module Spree
       if amount < 0
         return credit(amount.abs, nil, nil, gateway_options)
       end
-      order_number, payment_number = gateway_options[:order_id].split("-", 2)
+      order_number, payment_number = extract_order_and_payment_number(gateway_options)
       order = Spree::Order.find_by!(number: order_number)
       payment = Spree::Payment.find_by!(number: payment_number)
       authorization_id = order.amazon_transaction.authorization_id
-      capture_reference_id = "#{payment.number}-#{random_suffix}"
+      capture_reference_id = operation_unique_id(payment)
       load_amazon_mws(order.amazon_order_reference_id)
 
       response = @mws.capture(authorization_id, capture_reference_id, amount / 100.00, order.currency)
@@ -121,7 +121,7 @@ module Spree
       load_amazon_mws(amazon_transaction.order_reference)
       response = @mws.refund(
         amazon_transaction.capture_id,
-        "#{payment.number}-#{random_suffix}",
+        operation_unique_id(payment),
         amount / 100.00,
         payment.currency
       )
@@ -146,6 +146,18 @@ module Spree
 
     def load_amazon_mws(reference)
       @mws ||= AmazonMws.new(reference, gateway: self)
+    end
+
+    def extract_order_and_payment_number(gateway_options)
+      gateway_options[:order_id].split("-", 2)
+    end
+
+    # Amazon requires unique ids. Calling with the same id multiple times means
+    # the result of the previous call will be returned again. This can be good
+    # for things like asynchronous retries, but would break things like multiple
+    # captures on a single authorization.
+    def operation_unique_id(payment)
+      "#{payment.number}-#{random_suffix}"
     end
 
     # A random string of lowercase alphanumeric characters (i.e. "base 36")
