@@ -133,15 +133,23 @@ describe Spree::AmazonController do
   end
 
   describe "POST #complete" do
+    let(:order) { create(:order_with_line_items, state: 'confirm') }
+
+    def stub_amazon_order(address: build_amazon_address, email: 'jordan.brough@example.com')
+      allow_any_instance_of(SpreeAmazon::Order).to receive(:fetch).and_wrap_original { |method, *args|
+        amazon_order = method.receiver
+        amazon_order.address = address
+        amazon_order.email = email
+        amazon_order
+      }
+      allow_any_instance_of(SpreeAmazon::Order).to receive(:confirm).and_return(nil)
+      allow_any_instance_of(SpreeAmazon::Order).to receive(:save_total).and_return(nil)
+    end
+
     it "completes the spree order" do
-      order = create(:order_with_line_items, state: 'confirm')
       create_order_payment(order)
       set_current_order(order)
-      amazon_order = build_amazon_order(
-        address: build_amazon_address
-      )
-      stub_confirmation_methods(amazon_order)
-      stub_amazon_order(amazon_order)
+      stub_amazon_order
 
       spree_post :complete
 
@@ -149,25 +157,19 @@ describe Spree::AmazonController do
     end
 
     it "saves the total and confirms the order with mws" do
-      order = create(:order_with_line_items, state: 'confirm')
       create_order_payment(order)
-      amazon_order = build_amazon_order(
-        address: build_amazon_address
-      )
-      stub_confirmation_methods(amazon_order)
-      stub_amazon_order(amazon_order)
+      stub_amazon_order
       set_current_order(order)
 
-      spree_post :complete
+      expect_any_instance_of(SpreeAmazon::Order).to receive(:save_total)
+      expect_any_instance_of(SpreeAmazon::Order).to receive(:confirm)
 
-      expect(amazon_order).to have_received(:save_total)
-      expect(amazon_order).to have_received(:confirm)
+      spree_post :complete
     end
 
     it "updates the shipping address of the order" do
       us = create(:country, iso: 'US')
       ny = create(:state, abbr: 'NY', country: us)
-      order = create(:order_with_line_items, state: 'confirm')
       create_order_payment(order)
       address = build_amazon_address(
         name: 'Matt Murdock',
@@ -178,11 +180,7 @@ describe Spree::AmazonController do
         country_code: 'US',
         zipcode: '10024'
       )
-      amazon_order = build_amazon_order(
-        address: address
-      )
-      stub_confirmation_methods(amazon_order)
-      stub_amazon_order(amazon_order)
+      stub_amazon_order(address: address)
       set_current_order(order)
 
       spree_post :complete
@@ -198,15 +196,11 @@ describe Spree::AmazonController do
     end
 
     context "when the order can't be completed" do
+      let(:order) { create(:order_with_line_items) }
       # Order won't be able to complete as the payment is missing
       it "redirects to the cart page" do
-        order = create(:order_with_line_items)
         set_current_order(order)
-        amazon_order = build_amazon_order(
-          address: build_amazon_address
-        )
-        stub_confirmation_methods(amazon_order)
-        stub_amazon_order(amazon_order)
+        stub_amazon_order
 
         spree_post :complete, order: {}
 
@@ -214,13 +208,8 @@ describe Spree::AmazonController do
       end
 
       it "sets an error message" do
-        order = create(:order_with_line_items)
         set_current_order(order)
-        amazon_order = build_amazon_order(
-          address: build_amazon_address
-        )
-        stub_confirmation_methods(amazon_order)
-        stub_amazon_order(amazon_order)
+        stub_amazon_order
 
         spree_post :complete, order: {}
 
@@ -263,14 +252,6 @@ describe Spree::AmazonController do
     order.payments.create!(source: transaction, amount: amount || order.total)
   end
 
-  def build_amazon_order(attributes = {})
-    defaults = {
-      email: 'mmurdock@doe.com',
-      gateway: gateway,
-    }
-    SpreeAmazon::Order.new defaults.merge(attributes)
-  end
-
   def build_amazon_address(attributes = {})
     defaults = {
       city: "New York",
@@ -279,18 +260,6 @@ describe Spree::AmazonController do
       zipcode: "10012"
     }
     SpreeAmazon::Address.new defaults.merge(attributes)
-  end
-
-  def stub_confirmation_methods(amazon_order)
-    allow(amazon_order).to receive_messages(
-      fetch: amazon_order,
-      save_total: true,
-      confirm: true
-    )
-  end
-
-  def stub_amazon_order(order)
-    allow(SpreeAmazon::Order).to receive(:new).and_return(order)
   end
 
   def select_amazon_address(address)

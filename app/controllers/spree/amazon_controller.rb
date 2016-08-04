@@ -97,6 +97,7 @@ class Spree::AmazonController < Spree::StoreController
       reference_id: current_order.amazon_order_reference_id,
       total: current_order.total,
       currency: current_order.currency,
+      gateway: gateway,
     )
   end
 
