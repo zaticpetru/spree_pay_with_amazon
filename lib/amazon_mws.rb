@@ -177,6 +177,7 @@ class AmazonMws
       @gateway.preferred_aws_access_key_id,
       @gateway.preferred_aws_secret_access_key,
       region: @gateway.preferred_region.to_sym,
+      currency_code: @gateway.preferred_currency,
       sandbox: @gateway.preferred_test_mode,
       platform_id: nil, # TODO: Get a platform id for spree_amazon_payments
     )
