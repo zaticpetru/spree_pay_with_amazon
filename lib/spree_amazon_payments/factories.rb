@@ -17,5 +17,10 @@ FactoryGirl.define do
   factory :amazon_gateway, parent: :payment_method, class: Spree::Gateway::Amazon do
     sequence(:name) { |n| "Amazon Gateway #{n}" }
     preferred_test_mode true
+    preferred_currency 'USD'
+    preferred_client_id ''
+    preferred_merchant_id ''
+    preferred_aws_access_key_id ''
+    preferred_aws_secret_access_key ''
   end
 end

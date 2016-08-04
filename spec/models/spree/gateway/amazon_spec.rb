@@ -2,15 +2,7 @@ require 'spec_helper'
 
 describe Spree::Gateway::Amazon do
   let(:payment_method) { Spree::Gateway::Amazon.for_currency(order.currency) }
-  let!(:amazon_gateway) do
-    create(:amazon_gateway,
-      preferred_currency: 'USD',
-      preferred_client_id: '',
-      preferred_merchant_id: '',
-      preferred_aws_access_key_id: '',
-      preferred_aws_secret_access_key: '',
-    )
-  end
+  let!(:amazon_gateway) { create(:amazon_gateway) }
   let(:order) { create(:order_with_line_items, state: 'delivery') }
   let(:payment_source) { Spree::AmazonTransaction.create!(order_id: order.id, order_reference: 'REFERENCE') }
   let!(:payment) do
