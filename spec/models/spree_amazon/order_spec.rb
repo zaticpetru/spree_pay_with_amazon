@@ -12,26 +12,6 @@ describe SpreeAmazon::Order do
     )
   end
 
-  describe '.find' do
-    it "retrieves an order from MWS" do
-      mws = stub_mws('ORDER_REFERENCE')
-      response = build_mws_response(
-        state: 'Closed',
-        total: 10.0,
-        email: 'jane@doe.com',
-        reference_id: 'ORDER_REFERENCE'
-      )
-      allow(mws).to receive(:fetch_order_data).and_return(response)
-
-      order = SpreeAmazon::Order.find('ORDER_REFERENCE', gateway: gateway)
-
-      expect(order.reference_id).to eq('ORDER_REFERENCE')
-      expect(order.email).to eq('jane@doe.com')
-      expect(order.state).to eq('Closed')
-      expect(order.total.money.to_f).to eq(10.0)
-    end
-  end
-
   describe '#fetch' do
     it "loads the order information from MWS" do
       order = build_order
