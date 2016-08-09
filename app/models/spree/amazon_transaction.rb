@@ -10,6 +10,7 @@
 module Spree
   class AmazonTransaction < ActiveRecord::Base
     has_many :payments, :as => :source
+    belongs_to :order
 
     def name
       "Pay with Amazon"

@@ -244,6 +244,30 @@ describe Spree::Gateway::Amazon do
     end
   end
 
+  describe '#cancel' do
+    context 'no capture_id present' do
+      it 'succeeds' do
+        response = build_mws_void_response
+        expect(mws).to receive(:cancel).and_return(response)
+
+        auth = payment_method.cancel('', payment.source)
+
+        expect(auth).to be_success
+      end
+    end
+
+    context 'payment has been previously captured' do
+      it 'refund succeeds' do
+        payment.source.update_attributes(capture_id: 'P01-1234567-1234567-0000002')
+        response = build_mws_refund_response(state: 'Pending', total: order.total)
+        expect(mws).to receive(:refund).and_return(response)
+
+        auth = payment_method.cancel('', payment.source)
+        expect(auth).to be_success
+      end
+    end
+  end
+
   describe '.for_currency' do
     context 'when the currency exists and is active' do
       let!(:gbp_inactive_gateway) { create(:amazon_gateway, active: false, preferred_currency: 'GBP') }

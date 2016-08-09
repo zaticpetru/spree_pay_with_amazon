@@ -182,6 +182,20 @@ module Spree
       return ActiveMerchant::Billing::Response.new(true, "Success", response)
     end
 
+    def cancel(response_code, amazon_transaction)
+      order = amazon_transaction.order
+      load_amazon_mws(amazon_transaction.order_reference)
+      capture_id = amazon_transaction.capture_id
+
+      if capture_id.nil?
+        response = @mws.cancel(amazon_transaction.order_reference)
+      else
+        response = @mws.refund(capture_id, order.number, order.total, order.currency)
+      end
+
+      return ActiveMerchant::Billing::Response.new(true, "Success", response)
+    end
+
     private
 
     def load_amazon_mws(reference)
