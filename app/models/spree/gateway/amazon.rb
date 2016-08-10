@@ -142,7 +142,7 @@ module Spree
       t = order.amazon_transaction
       t.capture_id = response.fetch("CaptureResponse", {}).fetch("CaptureResult", {}).fetch("CaptureDetails", {}).fetch("AmazonCaptureId", nil)
       t.save!
-      return ActiveMerchant::Billing::Response.new(response.fetch("CaptureResponse", {}).fetch("CaptureResult", {}).fetch("CaptureDetails", {}).fetch("CaptureStatus", {})["State"] == "Completed", "OK", response)
+      return ActiveMerchant::Billing::Response.new(response.fetch("CaptureResponse", {}).fetch("CaptureResult", {}).fetch("CaptureDetails", {}).fetch("CaptureStatus", {})["State"] == "Completed", "OK", response, {authorization: t.capture_id})
     end
 
     def purchase(amount, amazon_checkout, gateway_options={})
@@ -182,16 +182,12 @@ module Spree
       return ActiveMerchant::Billing::Response.new(true, "Success", response)
     end
 
-    def cancel(response_code, amazon_transaction)
-      order = amazon_transaction.order
-      load_amazon_mws(amazon_transaction.order_reference)
-      capture_id = amazon_transaction.capture_id
+    def cancel(response_code)
+      payment = Spree::Payment.find_by(response_code: response_code)
+      order = payment.order
+      load_amazon_mws(payment.source.order_reference)
 
-      if capture_id.nil?
-        response = @mws.cancel(amazon_transaction.order_reference)
-      else
-        response = @mws.refund(capture_id, order.number, order.total, order.currency)
-      end
+      response = @mws.refund(response_code, order.number, order.total, order.currency)
 
       return ActiveMerchant::Billing::Response.new(true, "Success", response)
     end
