@@ -147,7 +147,7 @@ describe Spree::Gateway::Amazon do
     context 'with a 503 error' do
       before do
         # Without this the specs have a big pause while the Amazon gem retries
-        expect_any_instance_of(PayWithAmazon::Request).to receive(:get_seconds_for_try_count).at_least(:once).and_return(0)
+        allow_any_instance_of(PayWithAmazon::Request).to receive(:get_seconds_for_try_count).and_return(0)
       end
 
       it 'fails' do
