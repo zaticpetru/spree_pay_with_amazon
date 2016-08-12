@@ -164,7 +164,7 @@ describe Spree::Gateway::Amazon do
       end
     end
 
-    describe 'sandbox simulation strings' do
+    context 'with sandbox simulation strings' do
       let(:order) { create(:order_with_line_items, state: 'delivery', ship_address: ship_address) }
       let(:ship_address) do
         create(:address,
@@ -175,12 +175,7 @@ describe Spree::Gateway::Amazon do
       let(:expected_note) { '{"SandboxSimulation": {"State":"Declined", "ReasonCode":"InvalidPaymentMethod", "PaymentMethodUpdateTimeInMins":1}}' }
 
       it 'forwards the note to Amazon' do
-        expect(mws).to receive(:authorize).with(
-          /^#{payment.number}-\w+$/,
-          order.total/100,
-          order.currency,
-          seller_authorization_note: expected_note,
-        ).and_call_original
+        allow(mws).to receive(:authorize).and_call_original
 
         stub_auth_request(
           expected_body: hash_including(
@@ -195,6 +190,13 @@ describe Spree::Gateway::Amazon do
         )
 
         payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+
+        expect(mws).to have_received(:authorize).with(
+          /^#{payment.number}-\w+$/,
+          order.total/100,
+          order.currency,
+          seller_authorization_note: expected_note,
+        )
       end
     end
   end
