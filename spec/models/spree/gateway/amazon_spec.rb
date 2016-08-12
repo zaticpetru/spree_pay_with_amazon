@@ -54,7 +54,7 @@ describe Spree::Gateway::Amazon do
   end
 
   describe '#authorize' do
-    def stub_auth_request(expected_body: nil, return_values:)
+    def stub_auth_request(expected_body: nil, return_values: nil)
       stub_request(
         :post,
         'https://mws.amazonservices.com/OffAmazonPayments_Sandbox/2013-01-01',
@@ -66,17 +66,16 @@ describe Spree::Gateway::Amazon do
           'AuthorizationAmount.CurrencyCode' => order.currency
         )
       ).to_return(
-        return_values,
+        return_values || {
+          headers: {'content-type' => 'text/xml'},
+          body: build_mws_auth_approved_response(order: order),
+        },
       )
     end
 
     context 'when approved' do
       it 'succeeds' do
-        stub_auth_request(return_values: {
-          status: 200,
-          headers: {'content-type' => 'text/xml'},
-          body: build_mws_auth_approved_response(order: order),
-        })
+        stub_auth_request
 
         response = payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
 
@@ -165,38 +164,35 @@ describe Spree::Gateway::Amazon do
     end
 
     context 'with sandbox simulation strings' do
-      let(:order) { create(:order_with_line_items, state: 'delivery', ship_address: ship_address) }
-      let(:ship_address) do
-        create(:address,
-          firstname: 'InvalidPaymentMethodHard',
-          lastname: 'SandboxSimulation',
-        )
-      end
-      let(:expected_note) { '{"SandboxSimulation": {"State":"Declined", "ReasonCode":"InvalidPaymentMethod", "PaymentMethodUpdateTimeInMins":1}}' }
+      context 'with a ship address' do
+        let(:order) { create(:order_with_line_items, state: 'delivery', ship_address: ship_address) }
+        let(:ship_address) do
+          create(:address,
+            firstname: 'InvalidPaymentMethodHard',
+            lastname: 'SandboxSimulation',
+          )
+        end
+        let(:expected_note) { '{"SandboxSimulation": {"State":"Declined", "ReasonCode":"InvalidPaymentMethod", "PaymentMethodUpdateTimeInMins":1}}' }
 
-      it 'forwards the note to Amazon' do
-        allow(mws).to receive(:authorize).and_call_original
+        it 'forwards the note to Amazon' do
+          allow(mws).to receive(:authorize).and_call_original
 
-        stub_auth_request(
-          expected_body: hash_including(
-            'Action' => 'Authorize',
-            'SellerAuthorizationNote' => expected_note,
-          ),
-          return_values: {
-            headers: {'content-type' => 'text/xml'},
-            status: 200,
-            body: build_mws_auth_declined_response(order: order),
-          },
-        )
+          stub_auth_request(
+            expected_body: hash_including(
+              'Action' => 'Authorize',
+              'SellerAuthorizationNote' => expected_note,
+            ),
+          )
 
-        payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+          payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
 
-        expect(mws).to have_received(:authorize).with(
-          /^#{payment.number}-\w+$/,
-          order.total/100,
-          order.currency,
-          seller_authorization_note: expected_note,
-        )
+          expect(mws).to have_received(:authorize).with(
+            /^#{payment.number}-\w+$/,
+            order.total/100,
+            order.currency,
+            seller_authorization_note: expected_note,
+          )
+        end
       end
     end
   end
