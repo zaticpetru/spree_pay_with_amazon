@@ -40,8 +40,8 @@ end
 class AmazonMws
   require 'httparty'
 
-  def initialize(number, gateway:)
-    @number = number
+  def initialize(amazon_order_reference_id, gateway:)
+    @amazon_order_reference_id = amazon_order_reference_id
     @gateway = gateway
   end
 
@@ -49,14 +49,14 @@ class AmazonMws
   def fetch_order_data
     AmazonMwsOrderResponse.new(process({
       "Action"=>"GetOrderReferenceDetails",
-      "AmazonOrderReferenceId" => @number
+      "AmazonOrderReferenceId" => @amazon_order_reference_id,
     }))
   end
 
   def set_order_data(total, currency)
     process({
       "Action"=>"SetOrderReferenceDetails",
-      "AmazonOrderReferenceId" => @number,
+      "AmazonOrderReferenceId" => @amazon_order_reference_id,
       "OrderReferenceAttributes.OrderTotal.Amount" => total,
       "OrderReferenceAttributes.OrderTotal.CurrencyCode" => currency
     })
@@ -65,14 +65,14 @@ class AmazonMws
   def confirm_order
     process({
       "Action"=>"ConfirmOrderReference",
-      "AmazonOrderReferenceId" => @number
+      "AmazonOrderReferenceId" => @amazon_order_reference_id,
     })
   end
 
-  def authorize(ref_number, total, currency, seller_authorization_note: nil)
+  def authorize(authorization_reference_id, total, currency, seller_authorization_note: nil)
     client.authorize(
-      @number,
-      ref_number,
+      @amazon_order_reference_id,
+      authorization_reference_id,
       total,
       currency_code: currency,
       transaction_timeout: 0, # 0 is synchronous mode
