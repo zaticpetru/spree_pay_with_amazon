@@ -222,6 +222,7 @@ module Spree
     # details on Amazon Payments Sandbox Simulations.
     def sandbox_authorize_simulation_string(order)
       return nil if !preferred_test_mode
+      return nil if order.ship_address.nil?
       return nil if order.ship_address.lastname != 'SandboxSimulation'
 
       reason, minutes = order.ship_address.firstname.to_s.split('-', 2)

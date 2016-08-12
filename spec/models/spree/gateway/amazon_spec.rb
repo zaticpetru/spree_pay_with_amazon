@@ -194,6 +194,27 @@ describe Spree::Gateway::Amazon do
           )
         end
       end
+
+      context 'without a ship address' do
+        before do
+          order.update_attributes!(ship_address: nil)
+        end
+
+        it 'does not forward a note to Amazon' do
+          allow(mws).to receive(:authorize).and_call_original
+
+          stub_auth_request
+
+          payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+
+          expect(mws).to have_received(:authorize).with(
+            /^#{payment.number}-\w+$/,
+            order.total/100,
+            order.currency,
+            seller_authorization_note: nil,
+          )
+        end
+      end
     end
   end
 
