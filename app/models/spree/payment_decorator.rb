@@ -9,8 +9,4 @@
 ##
 Spree::Payment.class_eval do
   scope :amazon, ->{ where(source_type: 'Spree::AmazonTransaction') }
-
-  def amazon_transaction?
-    source_type == 'Spree::AmazonTransaction'
-  end
 end

@@ -1,17 +1,17 @@
 require 'spec_helper'
 
 describe Spree::Payment, type: :model do
-  describe '#amazon_transaction?' do
-    it 'returns true if source_type is Spree::AmazonTransaction' do
-      payment = create(:amazon_payment)
+  describe '#amazon' do
+    it 'returns all amazon payments' do
+       payment = create(:amazon_payment)
 
-      expect(payment.amazon_transaction?).to be_truthy
-    end
+      expect(Spree::Payment.amazon).to include(payment)
+     end
 
-    it 'returns false if source_type is not Spree::AmazonTransaction' do
-      payment = create(:payment)
+    it 'does not include non amazon payments' do
+       payment = create(:payment)
 
-      expect(payment.amazon_transaction?).to be_falsey
-    end
-  end
+      expect(Spree::Payment.amazon).to_not include(payment)
+     end
+   end
 end
