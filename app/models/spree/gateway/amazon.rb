@@ -189,7 +189,7 @@ module Spree
 
       response = @mws.refund(response_code, order.number, order.total, order.currency)
 
-      return ActiveMerchant::Billing::Response.new(true, "Success", response)
+      return ActiveMerchant::Billing::Response.new(true, "#{order.number}-cancel", response)
     end
 
     private
