@@ -34,7 +34,6 @@ class SpreeAmazon::Order
     if response.success
       true
     else
-      parsed_response = Hash.from_xml(response.body) rescue nil
       message = if parsed_response && parsed_response['ErrorResponse']
         error = parsed_response.fetch('ErrorResponse').fetch('Error')
         "#{response.code} #{error.fetch('Code')}: #{error.fetch('Message')}"
