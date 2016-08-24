@@ -133,8 +133,6 @@ describe Spree::AmazonController do
   end
 
   describe "POST #complete" do
-    let(:order) { create(:order_with_line_items, state: 'confirm') }
-
     def stub_amazon_order(address: build_amazon_address, email: 'jordan.brough@example.com')
       allow_any_instance_of(SpreeAmazon::Order).to receive(:fetch).and_wrap_original { |method, *args|
         amazon_order = method.receiver
@@ -147,6 +145,7 @@ describe Spree::AmazonController do
     end
 
     it "completes the spree order" do
+      order = create(:order_with_line_items, state: 'confirm')
       create_order_payment(order)
       set_current_order(order)
       stub_amazon_order
@@ -157,6 +156,7 @@ describe Spree::AmazonController do
     end
 
     it "saves the total and confirms the order with mws" do
+      order = create(:order_with_line_items, state: 'confirm')
       create_order_payment(order)
       stub_amazon_order
       set_current_order(order)
@@ -170,6 +170,7 @@ describe Spree::AmazonController do
     it "updates the shipping address of the order" do
       us = create(:country, iso: 'US')
       ny = create(:state, abbr: 'NY', country: us)
+      order = create(:order_with_line_items, state: 'confirm')
       create_order_payment(order)
       address = build_amazon_address(
         name: 'Matt Murdock',
@@ -196,9 +197,9 @@ describe Spree::AmazonController do
     end
 
     context "when the order can't be completed" do
-      let(:order) { create(:order_with_line_items) }
       # Order won't be able to complete as the payment is missing
       it "redirects to the cart page" do
+        order = create(:order_with_line_items)
         set_current_order(order)
         stub_amazon_order
 
@@ -208,6 +209,7 @@ describe Spree::AmazonController do
       end
 
       it "sets an error message" do
+        order = create(:order_with_line_items)
         set_current_order(order)
         stub_amazon_order
 
