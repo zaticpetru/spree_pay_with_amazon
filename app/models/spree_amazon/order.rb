@@ -1,12 +1,6 @@
 class SpreeAmazon::Order
   class CloseFailure < StandardError; end
 
-  class << self
-    def find(order_reference, gateway:)
-      new(reference_id: order_reference, gateway: gateway).fetch
-    end
-  end
-
   attr_accessor :state, :total, :email, :address, :reference_id, :currency,
                 :gateway
 
