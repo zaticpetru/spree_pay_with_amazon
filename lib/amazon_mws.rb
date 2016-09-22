@@ -56,7 +56,7 @@ class AmazonMws
       params.merge!('AddressConsentToken' => @address_consent_token)
     end
     AmazonMwsOrderResponse.new(
-      process(params)
+      get_order_reference_details(params)
     )
   end
 
@@ -79,8 +79,8 @@ class AmazonMws
     )
   end
 
-  def get_order_reference_details
-    client.get_order_reference_details(@amazon_order_reference_id)
+  def get_order_reference_details(params)
+    client.get_order_reference_details(params)
   end
 
   def confirm_order
