@@ -75,8 +75,29 @@ describe Spree::AmazonTransaction do
     end
 
     it 'should be false if payment is in complete state' do
-      payment.update_attributes(state: 'complete')
+      payment.update_attributes(state: 'completed')
       expect(amazon_transaction.can_void?(payment)).to be false
+    end
+  end
+
+  describe '#can_close?' do
+    it 'should be true if payment is in complete state' do
+      payment.update_attributes(state: 'completed')
+      amazon_transaction.update_attributes(closed_at: nil)
+
+      expect(amazon_transaction.can_close?(payment)).to be true
+    end
+
+    it 'should be false if payment is in pending state' do
+      payment.update_attributes(state: 'pending')
+
+      expect(amazon_transaction.can_close?(payment)).to be false
+    end
+
+    it 'should be false if closed_at is not nil' do
+      amazon_transaction.update_attributes(closed_at: DateTime.now)
+
+      expect(amazon_transaction.can_close?(payment)).to be false
     end
   end
 
@@ -90,5 +111,97 @@ describe Spree::AmazonTransaction do
     it 'should include void' do
       expect(amazon_transaction.actions).to include('void')
     end
+    it 'should include close' do
+      expect(amazon_transaction.actions).to include('close')
+    end
   end
+
+  describe '#close!' do
+    it 'returns true if payment is not completed' do
+      payment = create(:amazon_payment, state: 'pending')
+      source = payment.source
+
+      expect(source.close!(payment)).to be_truthy
+    end
+
+    it 'returns true if closed_at is not nil' do
+      payment = create(:amazon_payment, state: 'completed')
+      source = payment.source
+      source.update_attributes(closed_at: DateTime.now)
+
+      expect(source.close!(payment)).to be_truthy
+    end
+
+    def stub_close_request(return_values:)
+      stub_request(
+        :post,
+        'https://mws.amazonservices.com/OffAmazonPayments_Sandbox/2013-01-01',
+      ).with(
+        body: hash_including(
+          'Action' => 'CloseOrderReference',
+          'AmazonOrderReferenceId' => 'ORDER_REFERENCE',
+        )
+      ).to_return(
+        return_values,
+      )
+    end
+
+    context 'when successful' do
+      it 'returns true' do
+        payment = create(:amazon_payment, state: 'completed')
+        source = payment.source
+        stub_close_request(
+          return_values: {
+            status: 200,
+            headers: {'content-type' => 'text/xml'},
+            body: build_mws_close_order_reference_success_response,
+          },
+        )
+
+        expect(source.close!(payment)).to be_truthy
+      end
+    end
+
+    context 'when failure' do
+      it 'raises Spree::Core::GatewayError' do
+        payment = create(:amazon_payment, state: 'completed')
+        source = payment.source
+        stub_close_request(
+          return_values: {
+            status: 404,
+            headers: {'content-type' => 'text/xml'},
+            body: build_mws_close_order_reference_failure_response,
+          },
+        )
+
+        expect {
+          source.close!(payment)
+        }.to raise_error(Spree::Core::GatewayError)
+      end
+    end
+  end
+
+  def build_mws_close_order_reference_success_response
+    <<-XML.strip_heredoc
+      <CloseOrderReferenceResponse xmlns="http://mws.amazonservices.com/schema/OffAmazonPayments/2013-01-01">
+        <CloseOrderReferenceResult/>
+        <ResponseMetadata>
+          <RequestId>2766cf23-f468-4800-bdaf-4bd67c7799e5</RequestId>
+        </ResponseMetadata>
+      </CloseOrderReferenceResponse>
+    XML
+  end
+
+  def build_mws_close_order_reference_failure_response
+    <<-XML.strip_heredoc
+      <ErrorResponse xmlns="http://mws.amazonservices.com/schema/OffAmazonPayments/2013-01-01">
+        <Error>
+          <Type>Sender</Type>
+          <Code>InvalidOrderReferenceId</Code>
+          <Message>The OrderReferenceId ORDER_REFERENCE is invalid.</Message>
+        </Error>
+        <RequestId>f16e027d-4a2e-463f-b60c-0c7f61b13be7</RequestId>
+      </ErrorResponse>
+    XML
+   end
 end

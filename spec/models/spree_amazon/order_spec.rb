@@ -173,7 +173,7 @@ describe SpreeAmazon::Order do
 
         result = order.close_order_reference!
 
-        expect(result).to be_truthy
+        expect(result.message).to eq('Success')
       end
     end
 
@@ -186,10 +186,9 @@ describe SpreeAmazon::Order do
             body: build_mws_close_order_reference_failure_response,
           },
         )
+        result = order.close_order_reference!
 
-        expect {
-          order.close_order_reference!
-        }.to raise_error(SpreeAmazon::Order::CloseFailure)
+        expect(result.message).to eq( "404 InvalidOrderReferenceId: The OrderReferenceId ORDER_REFERENCE is invalid.")
       end
     end
   end

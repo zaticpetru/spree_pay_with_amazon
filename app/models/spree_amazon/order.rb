@@ -26,16 +26,27 @@ class SpreeAmazon::Order
     parsed_response = Hash.from_xml(response.body) rescue nil
 
     if response.success
-      true
+      success = true
+      message = 'Success'
     else
+      success = false
       message = if parsed_response && parsed_response['ErrorResponse']
         error = parsed_response.fetch('ErrorResponse').fetch('Error')
         "#{response.code} #{error.fetch('Code')}: #{error.fetch('Message')}"
       else
         "#{response.code} #{response.body}"
       end
-      raise CloseFailure, message
+
     end
+
+     ActiveMerchant::Billing::Response.new(
+      success,
+      message,
+      {
+        'response' => response,
+        'parsed_response' => parsed_response,
+      },
+    )
   end
 
   def set_order_reference_details(total, options={})

@@ -23,4 +23,11 @@ FactoryGirl.define do
     preferred_aws_access_key_id ''
     preferred_aws_secret_access_key ''
   end
+
+  factory :amazon_payment, class: Spree::Payment do
+    association(:payment_method, factory: :amazon_gateway)
+    association(:source, factory: :amazon_transaction)
+    amount 100.00
+    order
+  end
 end
