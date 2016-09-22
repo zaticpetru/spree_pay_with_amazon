@@ -81,10 +81,7 @@ class AmazonMws
   end
 
   def confirm_order
-    process({
-      "Action"=>"ConfirmOrderReference",
-      "AmazonOrderReferenceId" => @amazon_order_reference_id,
-    })
+    client.confirm_order_reference(@amazon_order_reference_id)
   end
 
   def authorize(authorization_reference_id, total, currency, seller_authorization_note: nil)
