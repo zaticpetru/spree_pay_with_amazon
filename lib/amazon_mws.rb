@@ -127,11 +127,8 @@ class AmazonMws
     )
   end
 
-  def get_refund_details(ref_number)
-    process({
-      "Action" => "GetRefundDetails",
-      "AmazonRefundId" => ref_number
-      })
+  def get_refund_details(refund_id)
+    client.get_refund_details(refund_id)
   end
 
   def cancel
