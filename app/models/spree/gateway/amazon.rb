@@ -78,7 +78,7 @@ module Spree
 
       load_amazon_mws(order.amazon_order_reference_id)
 
-      response = begin
+      mws_res = begin
         @mws.authorize(
           authorization_reference_id,
           amount / 100.0,
@@ -89,30 +89,26 @@ module Spree
         raise Spree::Core::GatewayError.new(e.to_s)
       end
 
-      if response.success
-        parsed_response = Hash.from_xml(response.body)
-        auth_details = parsed_response.fetch('AuthorizeResponse').fetch('AuthorizeResult').fetch('AuthorizationDetails')
-        auth_status = auth_details.fetch('AuthorizationStatus')
-        auth_state = auth_status.fetch('State')
+      amazon_response = SpreeAmazon::Response::Authorization.new(mws_res)
+      parsed_response = amazon_response.parse rescue nil
 
-        if auth_state == 'Open'
+      if amazon_response.success?
+        if amazon_response.state == 'Open'
           success = true
           order.amazon_transaction.update!(
-            authorization_id: auth_details.fetch('AmazonAuthorizationId')
+            authorization_id: amazon_response.response_id
           )
           message = 'Success'
         else
           success = false
-          message = "Authorization failure: #{auth_status['ReasonCode']}"
+          message = "Authorization failure: #{amazon_response.reason_code}"
         end
       else
         success = false
-        parsed_response = Hash.from_xml(response.body) rescue nil
-        if parsed_response && parsed_response['ErrorResponse']
-          error = parsed_response.fetch('ErrorResponse').fetch('Error')
-          message = "#{response.code} #{error.fetch('Code')}: #{error.fetch('Message')}"
+        if !amazon_response.body.nil? && amazon_response.error_response_present?
+          message = "#{amazon_response.response_code} #{amazon_response.error_code}: #{amazon_response.error_message}"
         else
-          message = "#{response.code} #{response.body}"
+          message = "#{mws_res.code} #{mws_res.body}"
         end
       end
 
@@ -120,7 +116,7 @@ module Spree
         success,
         message,
         {
-          'response' => response,
+          'response' => mws_res,
           'parsed_response' => parsed_response,
         },
       )
@@ -137,14 +133,20 @@ module Spree
       capture_reference_id = operation_unique_id(payment)
       load_amazon_mws(order.amazon_order_reference_id)
 
-      response = @mws.capture(authorization_id, capture_reference_id, amount / 100.00, order.currency)
-      parsed_response = Hash.from_xml(response.body)
+      mws_res = @mws.capture(authorization_id, capture_reference_id, amount / 100.00, order.currency)
+
+      response = SpreeAmazon::Response::Capture.new(mws_res)
 
       t = order.amazon_transaction
-      t.capture_id = parsed_response.fetch("CaptureResponse", {}).fetch("CaptureResult", {}).fetch("CaptureDetails", {}).fetch("AmazonCaptureId", nil)
+      t.capture_id = response.response_id
       t.save!
 
-      return ActiveMerchant::Billing::Response.new(parsed_response.fetch("CaptureResponse", {}).fetch("CaptureResult", {}).fetch("CaptureDetails", {}).fetch("CaptureStatus", {})["State"] == "Completed", "OK", parsed_response)
+      return ActiveMerchant::Billing::Response.new(response.success_state?, "OK",
+        {
+          'response' => mws_res,
+          'parsed_response' => response.parse,
+        }
+      )
     end
 
     def purchase(amount, amazon_checkout, gateway_options={})
