@@ -14,5 +14,12 @@ describe Spree::Payment::Processing do
 
       expect(payment.close!).to be_truthy
     end
+
+    it 'payment receives close! method' do
+      payment = create(:amazon_payment, state: 'completed')
+
+      expect(payment).to receive(:close!)
+      payment.close!
+    end
   end
 end
