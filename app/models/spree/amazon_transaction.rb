@@ -60,7 +60,7 @@ module Spree
     end
 
     def close!(payment)
-      return true if !can_close?(payment)
+      return true unless can_close?(payment)
 
       amazon_order = SpreeAmazon::Order.new(
         gateway: payment.payment_method,
