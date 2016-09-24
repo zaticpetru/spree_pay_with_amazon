@@ -49,16 +49,11 @@ class SpreeAmazon::Order
     )
   end
 
-  def set_order_reference_details(total, options={})
-    # These are parameters that the Amazon gem accepts
-    options.assert_valid_keys(
-      :seller_note,
-      :seller_order_id,
-      :store_name,
-      :custom_information,
-    )
-
-    mws.set_order_reference_details(total, options)
+  # @param total [String] The amount to set on the order
+  # @param amazon_options [Hash] These options are forwarded to the underlying
+  #   call to PayWithAmazon::Client#set_order_reference_details
+  def set_order_reference_details(total, amazon_options={})
+    mws.set_order_reference_details(total, amazon_options)
   end
 
   private
