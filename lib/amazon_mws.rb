@@ -38,7 +38,6 @@ class AmazonMwsOrderResponse
 end
 
 class AmazonMws
-  require 'httparty'
 
   def initialize(amazon_order_reference_id, gateway:, address_consent_token: nil)
     @amazon_order_reference_id = amazon_order_reference_id

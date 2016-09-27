@@ -24,7 +24,6 @@ Gem::Specification.new do |s|
   s.requirements << 'none'
 
   s.add_dependency 'spree_core', '~> 3.0.0'
-  s.add_dependency 'httparty'
   s.add_dependency 'pay_with_amazon', '~> 1.1'
 
   s.add_development_dependency 'capybara', '~> 2.4'
