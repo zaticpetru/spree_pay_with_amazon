@@ -138,11 +138,13 @@ module Spree
       load_amazon_mws(order.amazon_order_reference_id)
 
       response = @mws.capture(authorization_id, capture_reference_id, amount / 100.00, order.currency)
+      parsed_response = Hash.from_xml(response.body)
 
       t = order.amazon_transaction
-      t.capture_id = response.fetch("CaptureResponse", {}).fetch("CaptureResult", {}).fetch("CaptureDetails", {}).fetch("AmazonCaptureId", nil)
+      t.capture_id = parsed_response.fetch("CaptureResponse", {}).fetch("CaptureResult", {}).fetch("CaptureDetails", {}).fetch("AmazonCaptureId", nil)
       t.save!
-      return ActiveMerchant::Billing::Response.new(response.fetch("CaptureResponse", {}).fetch("CaptureResult", {}).fetch("CaptureDetails", {}).fetch("CaptureStatus", {})["State"] == "Completed", "OK", response, {authorization: t.capture_id})
+
+      return ActiveMerchant::Billing::Response.new(parsed_response.fetch("CaptureResponse", {}).fetch("CaptureResult", {}).fetch("CaptureDetails", {}).fetch("CaptureStatus", {})["State"] == "Completed", "OK", parsed_response)
     end
 
     def purchase(amount, amazon_checkout, gateway_options={})
@@ -165,7 +167,8 @@ module Spree
         amount / 100.00,
         payment.currency
       )
-      return ActiveMerchant::Billing::Response.new(true, "Success", response)
+
+      return ActiveMerchant::Billing::Response.new(true, "Success", Hash.from_xml(response.body))
     end
 
     def void(response_code, gateway_options)
@@ -179,7 +182,7 @@ module Spree
         response = @mws.refund(capture_id, gateway_options[:order_id], order.total, order.currency)
       end
 
-      return ActiveMerchant::Billing::Response.new(true, "Success", response)
+      return ActiveMerchant::Billing::Response.new(true, "Success", Hash.from_xml(response.body))
     end
 
     def cancel(response_code)

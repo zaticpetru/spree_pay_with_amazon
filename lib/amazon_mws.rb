@@ -12,7 +12,7 @@ require 'pay_with_amazon'
 
 class AmazonMwsOrderResponse
   def initialize(response)
-    @response = response.fetch("GetOrderReferenceDetailsResponse", {})
+    @response = Hash.from_xml(response.body).fetch("GetOrderReferenceDetailsResponse", {})
   end
 
   def destination
