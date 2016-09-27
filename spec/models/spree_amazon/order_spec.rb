@@ -13,16 +13,31 @@ describe SpreeAmazon::Order do
   end
 
   describe '#fetch' do
+    def stub_get_order_ref_details(response_data)
+      stub_request(
+        :post,
+        'https://mws.amazonservices.com/OffAmazonPayments_Sandbox/2013-01-01',
+      ).with(
+        body: hash_including(
+          'Action' => 'GetOrderReferenceDetails'
+        )
+      ).to_return(
+        {
+          headers: {'content-type' => 'text/xml'},
+          body: response_data,
+        },
+      )
+    end
+
     it "loads the order information from MWS" do
       order = build_order
-      mws = stub_mws(order.reference_id)
       response = build_mws_response(
         state: 'Open',
         total: 30.0,
         email: 'joe@doe.com',
         reference_id: order.reference_id
       )
-      allow(mws).to receive(:fetch_order_data).and_return(response)
+      stub_get_order_ref_details(response)
 
       order.fetch
 
@@ -34,23 +49,24 @@ describe SpreeAmazon::Order do
     context 'with an address_consent_token' do
       it 'sends the token in the request' do
         order = build_order(address_consent_token: 'token')
-        mws = stub_mws(order.reference_id, address_consent_token: 'token')
+        allow_any_instance_of(SpreeAmazon::Order).to receive(:mws).and_return(
+          AmazonMws.new(
+            order.reference_id,
+            gateway: gateway,
+            address_consent_token: 'token',
+          )
+        )
         response = build_mws_response(
           state: 'Open',
           total: 30.0,
           email: 'joe@doe.com',
           reference_id: order.reference_id
         )
-        allow(mws).to receive(:fetch_order_data).and_return(response)
+        stub_get_order_ref_details(response)
 
-        order.fetch
+        fetch_response = order.fetch
 
-        expect(AmazonMws).to have_received(:new).
-          with(
-            order.reference_id,
-            gateway: gateway,
-            address_consent_token: 'token',
-          )
+        expect(fetch_response.address_consent_token).to eq('token')
       end
     end
   end
@@ -194,31 +210,39 @@ describe SpreeAmazon::Order do
   end
 
   def build_mws_response(state:, email:, total:, reference_id:)
-    AmazonMwsOrderResponse.new(
-      "GetOrderReferenceDetailsResponse" =>{
-        "GetOrderReferenceDetailsResult"=> {
-          "OrderReferenceDetails"=> {
-            "OrderReferenceStatus"=> {
-              "LastUpdateTimestamp"=>"2016-04-18T17:05:52.621Z", "State"=>state
-            },
-            "Destination"=> {
-              "DestinationType"=>"Physical",
-              "PhysicalDestination"=> {}
-            },
-            "ExpirationTimestamp"=>"2016-10-15T17:05:32.272Z",
-            "IdList"=>{"member"=>"S01-4301752-9080047-A018166"},
-            "SellerOrderAttributes"=>nil,
-            "OrderTotal"=>{"CurrencyCode"=>'USD', "Amount"=>total},
-            "Buyer"=>{"Name"=>"Joe Doe", "Email"=>email},
-            "ReleaseEnvironment"=>"Sandbox",
-            "AmazonOrderReferenceId"=>reference_id,
-            "CreationTimestamp"=>"2016-04-18T17:05:32.272Z",
-            "RequestPaymentAuthorization"=>"false"
-          }
-        },
-        "ResponseMetadata"=>{"RequestId"=>"f390f7fb-0cdc-486c-974b-0db919cf82b3"}
-      }
-    )
+    <<-XML.strip_heredoc
+      <GetOrderReferenceDetailsResponse
+    xmlns="http://mws.amazonservices.com/
+          schema/OffAmazonPayments/2013-01-01">
+        <GetOrderReferenceDetailsResult>
+          <OrderReferenceDetails>
+            <AmazonOrderReferenceId>#{reference_id}</AmazonOrderReferenceId>
+            <CreationTimestamp>2012-11-05T20:21:19Z</CreationTimestamp>
+            <ExpirationTimestamp>2013-05-07T23:21:19Z</ExpirationTimestamp>
+            <OrderReferenceStatus>
+              <State>#{state}</State>
+            </OrderReferenceStatus>
+            <Destination>
+              <DestinationType>Physical</DestinationType>
+              <PhysicalDestination>
+              </PhysicalDestination>
+            </Destination>
+            <OrderTotal>
+              <CurrencyCode>USD</CurrencyCode>
+              <Amount>#{total}</Amount>
+            </OrderTotal>
+            <Buyer>
+              <Name>Joe Doe</Name>
+              <Email>#{email}</Email>
+            </Buyer>
+            <ReleaseEnvironment>Live</ReleaseEnvironment>
+          </OrderReferenceDetails>
+        </GetOrderReferenceDetailsResult>
+        <ResponseMetadata>
+          <RequestId>5f20169b-7ab2-11df-bcef-d35615e2b044</RequestId>
+        </ResponseMetadata>
+      </GetOrderReferenceDetailsResponse>
+    XML
   end
 
   def build_mws_close_order_reference_success_response
