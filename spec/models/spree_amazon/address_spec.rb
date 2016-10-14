@@ -87,12 +87,12 @@ describe SpreeAmazon::Address do
   def stub_amazon_response(order_reference, response_data, address_consent_token: nil)
     Spree::Gateway::Amazon.create!(name: 'Amazon', preferred_test_mode: true)
     mws = instance_double(AmazonMws)
-    if address_consent_token.nil?
-      body = hash_including(
+     body = if address_consent_token.nil?
+      hash_including(
         'Action' => 'GetOrderReferenceDetails'
       )
     else
-      body = hash_including(
+      hash_including(
         'Action' => 'GetOrderReferenceDetails',
         'AddressConsentToken' => address_consent_token
       )
