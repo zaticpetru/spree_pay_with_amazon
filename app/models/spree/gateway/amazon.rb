@@ -183,7 +183,7 @@ module Spree
     end
 
     def cancel(response_code)
-      payment = Spree::Payment.find_by(response_code: response_code)
+      payment = Spree::Payment.find_by!(response_code: response_code)
       order = payment.order
       load_amazon_mws(payment.source.order_reference)
 
