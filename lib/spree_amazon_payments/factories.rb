@@ -29,5 +29,9 @@ FactoryGirl.define do
     association(:source, factory: :amazon_transaction)
     amount 100.00
     order
+
+    after(:create) do |amazon_payment, evaluator|
+      amazon_payment.source.update_attributes(order_id: amazon_payment.order.id)
+    end
   end
 end

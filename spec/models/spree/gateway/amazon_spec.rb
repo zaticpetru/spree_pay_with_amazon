@@ -10,7 +10,8 @@ describe Spree::Gateway::Amazon do
            order: order,
            payment_method: payment_method,
            source: payment_source,
-           amount: order.total)
+           amount: order.total,
+           response_code: 'P01-1234567-1234567-0000002')
   end
   let(:mws) { payment_method.send(:load_amazon_mws, 'REFERENCE') }
 
@@ -245,9 +246,19 @@ describe Spree::Gateway::Amazon do
   end
 
   describe '#cancel' do
+    context 'payment has not yet been captured' do
+      it 'cancel succeeds' do
+        response = build_mws_void_response
+        expect(mws).to receive(:cancel).and_return(response)
+
+        auth = payment_method.cancel('P01-1234567-1234567-0000002')
+        expect(auth).to be_success
+      end
+    end
+
     context 'payment has been previously captured' do
       it 'refund succeeds' do
-        payment = create(:amazon_payment, response_code: 'P01-1234567-1234567-0000002')
+        payment.source.update_attributes(capture_id: 'CAPTURE_ID')
         response = build_mws_refund_response(state: 'Pending', total: payment.order.total)
         expect(mws).to receive(:refund).and_return(response)
 
