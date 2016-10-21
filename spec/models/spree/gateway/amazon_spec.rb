@@ -18,13 +18,14 @@ describe Spree::Gateway::Amazon do
   describe "#credit" do
     it 'succeeds' do
       allow_any_instance_of(Spree::Gateway::Amazon).to receive(:operation_unique_id).and_return('REFERENCE')
-      amazon_transaction = create(:amazon_transaction, capture_id: "CAPTURE_ID")
+      amazon_transaction = create(:amazon_transaction, capture_id: "P01-1234567-1234567-0000002")
       payment = create(:payment, source: amazon_transaction, amount: 30.0, payment_method: payment_method)
       refund = create(:refund, payment: payment, amount: 30.0)
-      stub_refund_request(order: order)
+      order.update_attributes(total: 1.1)
+      stub_refund_request(order: order, reference_number: 'REFERENCE')
 
       
-      auth = payment_method.credit(order.total, nil, { originator: refund })
+      auth = payment_method.credit(110, nil, { originator: refund })
       expect(auth).to be_success
     end
   end
@@ -249,13 +250,22 @@ describe Spree::Gateway::Amazon do
         expect(auth).to be_success
       end
     end
+
+    context 'payment has been previously captured' do
+      it 'refund succeeds' do
+        payment.source.update_attributes(capture_id: 'P01-1234567-1234567-0000002')
+        stub_refund_request(order: order, reference_number: payment.send(:gateway_order_id))
+
+        auth = payment_method.void('', {order_id: payment.send(:gateway_order_id)})
+        expect(auth).to be_success
+      end
+    end
   end
 
   describe '#cancel' do
     context 'payment has not yet been captured' do
       it 'cancel succeeds' do
-        response = build_mws_void_response
-        expect(mws).to receive(:cancel).and_return(response)
+        stub_cancel_request
 
         auth = payment_method.cancel('P01-1234567-1234567-0000002')
         expect(auth).to be_success
@@ -265,8 +275,7 @@ describe Spree::Gateway::Amazon do
     context 'payment has been previously captured' do
       it 'refund succeeds' do
         payment.source.update_attributes(capture_id: 'CAPTURE_ID')
-        response = build_mws_refund_response(state: 'Pending', total: payment.order.total)
-        expect(mws).to receive(:refund).and_return(response)
+        stub_refund_request(order: order, reference_number: order.number)
 
         auth = payment_method.cancel('P01-1234567-1234567-0000002')
         expect(auth).to be_success
@@ -331,22 +340,22 @@ describe Spree::Gateway::Amazon do
     )
   end
 
-  def stub_refund_request(order: nil)
+  def stub_refund_request(order: nil, reference_number: 'REFERENCE')
     stub_request(
       :post,
       'https://mws.amazonservices.com/OffAmazonPayments_Sandbox/2013-01-01',
     ).with(
       body: hash_including(
         'Action' => 'Refund',
-        'AmazonCaptureId' => 'CAPTURE_ID',
-        'RefundReferenceId' => 'REFERENCE',
-        'RefundAmount.Amount' => '1.1',
+        'AmazonCaptureId' => 'P01-1234567-1234567-0000002',
+        'RefundReferenceId' => reference_number,
+        'RefundAmount.Amount' => order.total.to_s,
         'RefundAmount.CurrencyCode' => order.currency
       )
     ).to_return(
       {
         headers: {'content-type' => 'text/xml'},
-        body: build_mws_refund_response(state: 'Pending', total: '1.1')
+        body: build_mws_refund_response(state: 'Pending', total: order.total.to_s)
       },
     )
   end
@@ -518,7 +527,7 @@ describe Spree::Gateway::Amazon do
       <RefundResponse xmlns="https://mws.amazonservices.com/schema/OffAmazonPayments/2013-01-01">
         <RefundResult>
           <RefundDetails>
-            <AmazonRefundId>P01-1234567-1234567-0000003</AmazonRefundId>
+            <AmazonRefundId>P01-1234567-1234567-0000002</AmazonRefundId>
             <RefundReferenceId>test_refund_1</RefundReferenceId>
             <SellerRefundNote></SellerRefundNote>
             <RefundType>SellerInitiated</RefundType>
