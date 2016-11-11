@@ -8,9 +8,8 @@
 #
 ##
 # Run Coverage report
-require "codeclimate-test-reporter"
-CodeClimate::TestReporter.start
 
+require 'simplecov'
 SimpleCov.start do
   add_filter 'spec/dummy'
   add_group 'Controllers', 'app/controllers'
