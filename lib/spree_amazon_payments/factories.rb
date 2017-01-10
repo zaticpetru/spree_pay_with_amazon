@@ -14,7 +14,7 @@ FactoryGirl.define do
     order_reference "ORDER_REFERENCE"
   end
 
-  factory :amazon_gateway, parent: :payment_method, class: Spree::Gateway::Amazon do
+  factory :amazon_gateway, class: Spree::Gateway::Amazon do
     sequence(:name) { |n| "Amazon Gateway #{n}" }
     preferred_test_mode true
     preferred_currency 'USD'
