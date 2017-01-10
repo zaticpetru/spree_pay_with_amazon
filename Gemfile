@@ -21,4 +21,7 @@ group :test do
   gem 'webmock'
 end
 
+gem 'pg'
+gem 'mysql2'
+
 gemspec
