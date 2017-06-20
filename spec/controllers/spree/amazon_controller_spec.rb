@@ -93,7 +93,7 @@ describe Spree::AmazonController do
         selected_shipping_rate_id: shipping_rate.id
       )
 
-      post :confirm, order: shipment_attributes
+      post :confirm, params: { order: shipment_attributes }
 
       expect(payment.reload.amount).to eq(order.reload.total)
     end
@@ -109,7 +109,7 @@ describe Spree::AmazonController do
         selected_shipping_rate_id: shipping_rate.id
       )
 
-      post :confirm, order: shipment_attributes
+      post :confirm, params: { order: shipment_attributes }
 
       expect(order.reload.confirm?).to be true
     end
@@ -126,7 +126,7 @@ describe Spree::AmazonController do
         selected_shipping_rate_id: new_shipping_rate.id
       )
 
-      post :confirm, order: shipment_attributes
+      post :confirm, params: { order: shipment_attributes }
 
       expect(shipment.reload.selected_shipping_rate).to eq(new_shipping_rate)
     end
@@ -194,7 +194,7 @@ describe Spree::AmazonController do
 
       post :complete
 
-      address = order.ship_address(true)
+      address = order.ship_address
       expect(address.firstname).to eq('Matt')
       expect(address.lastname).to eq('Murdock')
       expect(address.address1).to eq('224 Lafayette St')
@@ -211,7 +211,7 @@ describe Spree::AmazonController do
         set_current_order(order)
         stub_amazon_order
 
-        post :complete, order: {}
+        post :complete, params: { order: {} }
 
         expect(response).to redirect_to('/cart')
       end
@@ -221,7 +221,7 @@ describe Spree::AmazonController do
         set_current_order(order)
         stub_amazon_order
 
-        post :complete, order: {}
+        post :complete, params: { order: {} }
 
         expect(flash[:notice]).to eq("Unable to process order")
       end
@@ -235,7 +235,7 @@ describe Spree::AmazonController do
         set_current_order(order)
 
         expect {
-          post :payment, order_reference: 'ORDER_REFERENCE'
+          post :payment, params: { order_reference: 'ORDER_REFERENCE' }
         }.to change(order.payments, :count).by(1)
       end
     end
@@ -245,7 +245,7 @@ describe Spree::AmazonController do
       order = create(:order_with_totals)
       set_current_order(order)
 
-      post :payment, order_reference: 'ORDER_REFERENCE'
+      post :payment, params: { order_reference: 'ORDER_REFERENCE' }
 
       payment = order.payments.amazon.first
       transaction = payment.source

@@ -9,8 +9,8 @@
 ##
 class Spree::AmazonController < Spree::StoreController
   helper 'spree/orders'
-  before_filter :check_current_order
-  before_filter :check_amazon_reference_id, only: [:delivery, :complete]
+  before_action :check_current_order
+  before_action :check_amazon_reference_id, only: [:delivery, :complete]
 
   respond_to :json
 
