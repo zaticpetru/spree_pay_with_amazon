@@ -75,7 +75,7 @@ class Spree::AmazonController < Spree::StoreController
     authorize!(:edit, @order, cookies.signed[:guest_token])
     complete_amazon_order!
 
-    if @order.complete
+    if @order.confirm? && @order.next
       @current_order = nil
       flash.notice = Spree.t(:order_processed_successfully)
       redirect_to spree.order_path(@order)
@@ -113,7 +113,7 @@ class Spree::AmazonController < Spree::StoreController
     )
     amazon_order.confirm
     amazon_order.fetch
-    
+
     current_order.email = amazon_order.email
     update_current_order_address!(:ship_address, amazon_order.address)
   end
