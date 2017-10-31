@@ -59,7 +59,7 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def confirm
-    if Spree::OrderUpdateAttributes.new(current_order, checkout_params, request_env: request.headers.env).apply
+    if current_order.update_from_params(params, permitted_checkout_attributes, request.headers.env)
       while current_order.next
       end
 
