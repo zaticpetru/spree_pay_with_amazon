@@ -259,7 +259,7 @@ describe Spree::AmazonController do
     transaction = Spree::AmazonTransaction.create!(
       order_id: order.id, order_reference: 'REFERENCE'
     )
-    order.payments.create!(source: transaction, amount: amount || order.total)
+    order.payments.create!(payment_method: gateway, source: transaction, amount: amount || order.total)
   end
 
   def build_amazon_address(attributes = {})
@@ -290,4 +290,3 @@ describe Spree::AmazonController do
     }
   end
 end
-
