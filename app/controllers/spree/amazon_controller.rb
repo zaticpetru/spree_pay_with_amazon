@@ -59,8 +59,8 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def confirm
-    if Spree::OrderUpdateAttributes.new(current_order, checkout_params, request_env: request.headers.env).apply
-      while current_order.next
+    if current_order.update_from_params(params, permitted_checkout_attributes, request.headers.env)
+      while current_order.next && !current_order.confirm?
       end
 
       update_payment_amount!
@@ -75,7 +75,7 @@ class Spree::AmazonController < Spree::StoreController
     authorize!(:edit, @order, cookies.signed[:guest_token])
     complete_amazon_order!
 
-    if @order.complete
+    if @order.confirm? && @order.next
       @current_order = nil
       flash.notice = Spree.t(:order_processed_successfully)
       redirect_to spree.order_path(@order)
@@ -113,7 +113,7 @@ class Spree::AmazonController < Spree::StoreController
     )
     amazon_order.confirm
     amazon_order.fetch
-    
+
     current_order.email = amazon_order.email
     update_current_order_address!(:ship_address, amazon_order.address)
   end

@@ -133,6 +133,17 @@ describe Spree::AmazonController do
   end
 
   describe "POST #complete" do
+    let(:gateway_response) do
+      ActiveMerchant::Billing::Response.new(
+        true,
+        'Success',
+        {
+          'response' => '',
+          'parsed_response' => {},
+        },
+      )
+    end
+
     def stub_amazon_order(address: build_amazon_address, email: 'jordan.brough@example.com')
       allow_any_instance_of(SpreeAmazon::Order).to receive(:fetch).and_wrap_original { |method, *args|
         amazon_order = method.receiver
@@ -142,6 +153,7 @@ describe Spree::AmazonController do
       }
       allow_any_instance_of(SpreeAmazon::Order).to receive(:confirm).and_return(nil)
       allow_any_instance_of(SpreeAmazon::Order).to receive(:set_order_reference_details).and_return(nil)
+      allow_any_instance_of(Spree::Gateway::Amazon).to receive(:authorize).and_return(gateway_response)
     end
 
     it "completes the spree order" do
@@ -259,7 +271,7 @@ describe Spree::AmazonController do
     transaction = Spree::AmazonTransaction.create!(
       order_id: order.id, order_reference: 'REFERENCE'
     )
-    order.payments.create!(source: transaction, amount: amount || order.total)
+    order.payments.create!(payment_method: gateway, source: transaction, amount: amount || order.total)
   end
 
   def build_amazon_address(attributes = {})
@@ -290,4 +302,3 @@ describe Spree::AmazonController do
     }
   end
 end
-

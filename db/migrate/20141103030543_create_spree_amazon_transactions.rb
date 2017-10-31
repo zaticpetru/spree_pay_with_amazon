@@ -7,7 +7,7 @@
 # @license     http://opensource.org/licenses/Apache-2.0  Apache License, Version 2.0
 #
 ##
-class CreateSpreeAmazonTransactions < ActiveRecord::Migration
+class CreateSpreeAmazonTransactions < ActiveRecord::Migration[4.2]
   def change
     create_table :spree_amazon_transactions do |t|
       t.integer :order_id

@@ -7,7 +7,7 @@
 # @license     http://opensource.org/licenses/Apache-2.0  Apache License, Version 2.0
 #
 ##
-class AddAuthorizationAndCaptureCodeToTransaction < ActiveRecord::Migration
+class AddAuthorizationAndCaptureCodeToTransaction < ActiveRecord::Migration[4.2]
   def change
     add_column :spree_amazon_transactions, :authorization_id, :string
     add_column :spree_amazon_transactions, :capture_id, :string
