@@ -1,4 +1,4 @@
-class AddCurrencyToAmazonGateway < ActiveRecord::Migration
+class AddCurrencyToAmazonGateway < ActiveRecord::Migration[4.2]
   def change
     amazon_gateways = Spree::Gateway::Amazon.where(active: true).all
 
