@@ -70,7 +70,7 @@ module Spree
       if amount < 0
         return ActiveMerchant::Billing::Response.new(true, "Success", {})
       end
-      
+
       order_number, payment_number = extract_order_and_payment_number(gateway_options)
       order = Spree::Order.find_by!(number: order_number)
       payment = Spree::Payment.find_by!(number: payment_number)

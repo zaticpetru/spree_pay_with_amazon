@@ -60,7 +60,7 @@ class Spree::AmazonController < Spree::StoreController
 
   def confirm
     if current_order.update_from_params(params, permitted_checkout_attributes, request.headers.env)
-      while current_order.next
+      while current_order.next && !current_order.confirm?
       end
 
       update_payment_amount!
