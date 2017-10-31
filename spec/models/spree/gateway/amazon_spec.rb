@@ -13,6 +13,7 @@ describe Spree::Gateway::Amazon do
            amount: order.total,
            response_code: 'P01-1234567-1234567-0000002')
   end
+  let(:gateway_options) { Spree::Payment::GatewayOptions.new payment }
   let(:mws) { payment_method.send(:load_amazon_mws, 'REFERENCE') }
 
   describe "#credit" do
@@ -24,7 +25,7 @@ describe Spree::Gateway::Amazon do
       order.update_attributes(total: 1.1)
       stub_refund_request(order: order, reference_number: 'REFERENCE')
 
-      
+
       auth = payment_method.credit(110, nil, { originator: refund })
       expect(auth).to be_success
     end
@@ -54,7 +55,7 @@ describe Spree::Gateway::Amazon do
       it 'succeeds' do
         stub_auth_request
 
-        response = payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+        response = payment_method.authorize(order.total, payment_source, {order_id: gateway_options.order_id})
 
         expect(response).to be_success
       end
@@ -68,7 +69,7 @@ describe Spree::Gateway::Amazon do
           body: build_mws_auth_declined_response(order: order),
         })
 
-        response = payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+        response = payment_method.authorize(order.total, payment_source, {order_id: gateway_options.order_id})
 
         expect(response).not_to be_success
         expect(response.message).to eq('Authorization failure: InvalidPaymentMethod')
@@ -83,7 +84,7 @@ describe Spree::Gateway::Amazon do
           body: build_mws_auth_error_response(order: order),
         })
 
-        response = payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+        response = payment_method.authorize(order.total, payment_source, {order_id: gateway_options.order_id})
 
         expect(response).not_to be_success
         expect(response.message).to match(/^400 TransactionAmountExceeded:/)
@@ -98,7 +99,7 @@ describe Spree::Gateway::Amazon do
           body: build_error_response(code: 502, message: "502 Bad Gateway")
         })
 
-        response = payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+        response = payment_method.authorize(order.total, payment_source, {order_id: gateway_options.order_id})
 
         expect(response).not_to be_success
         expect(response.message).to match(/502 Bad Gateway/)
@@ -115,7 +116,7 @@ describe Spree::Gateway::Amazon do
         })
 
         expect {
-          response = payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+          response = payment_method.authorize(order.total, payment_source, {order_id: gateway_options.order_id})
         }.to raise_error(Spree::Core::GatewayError, 'InternalServerError')
       end
     end
@@ -135,7 +136,7 @@ describe Spree::Gateway::Amazon do
         })
 
         expect {
-          response = payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+          response = payment_method.authorize(order.total, payment_source, {order_id: gateway_options.order_id})
         }.to raise_error(Spree::Core::GatewayError, 'ServiceUnavailable or RequestThrottled')
       end
     end
@@ -161,7 +162,7 @@ describe Spree::Gateway::Amazon do
             ),
           )
 
-          payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+          payment_method.authorize(order.total, payment_source, {order_id: gateway_options.order_id})
 
           expect(mws).to have_received(:authorize).with(
             /^#{payment.number}-\w+$/,
@@ -182,7 +183,7 @@ describe Spree::Gateway::Amazon do
 
           stub_auth_request
 
-          payment_method.authorize(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+          payment_method.authorize(order.total, payment_source, {order_id: gateway_options.order_id})
 
           expect(mws).to have_received(:authorize).with(
             /^#{payment.number}-\w+$/,
@@ -221,7 +222,7 @@ describe Spree::Gateway::Amazon do
       stub_capture_request
 
 
-      auth = payment_method.capture(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+      auth = payment_method.capture(order.total, payment_source, {order_id: gateway_options.order_id})
 
       expect(auth).to be_success
     end
@@ -235,7 +236,7 @@ describe Spree::Gateway::Amazon do
         expect(payment_method).to receive(:authorize).and_return(auth_result)
         expect(payment_method).not_to receive(:capture)
 
-        result = payment_method.purchase(order.total, payment_source, {order_id: payment.send(:gateway_order_id)})
+        result = payment_method.purchase(order.total, payment_source, {order_id: gateway_options.order_id})
         expect(result).to eq(auth_result)
       end
     end
@@ -246,7 +247,7 @@ describe Spree::Gateway::Amazon do
       it 'cancel succeeds' do
         stub_cancel_request
 
-        auth = payment_method.void('', {order_id: payment.send(:gateway_order_id)})
+        auth = payment_method.void('', {order_id: gateway_options.order_id})
         expect(auth).to be_success
       end
     end
@@ -254,9 +255,9 @@ describe Spree::Gateway::Amazon do
     context 'payment has been previously captured' do
       it 'refund succeeds' do
         payment.source.update_attributes(capture_id: 'P01-1234567-1234567-0000002')
-        stub_refund_request(order: order, reference_number: payment.send(:gateway_order_id))
+        stub_refund_request(order: order, reference_number: gateway_options.order_id)
 
-        auth = payment_method.void('', {order_id: payment.send(:gateway_order_id)})
+        auth = payment_method.void('', {order_id: gateway_options.order_id})
         expect(auth).to be_success
       end
     end
