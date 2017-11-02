@@ -50,10 +50,15 @@ class Spree::AmazonController < Spree::StoreController
       update_current_order_address!(:bill_address, address)
 
       current_order.save!
-      current_order.next!
+      current_order.next
 
       current_order.reload
-      render layout: false
+
+      if current_order.shipments.empty?
+        render plain: 'Not shippable to this address'
+      else
+        render layout: false
+      end
     else
       head :ok
     end
