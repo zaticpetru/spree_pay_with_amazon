@@ -12,12 +12,6 @@ describe Spree::AmazonController do
 
       expect(order.reload.address?).to be true
     end
-
-    it "redirects if there's no current order" do
-      get :address
-
-      expect(response).to redirect_to('/')
-    end
   end
 
   describe 'POST #delivery' do
@@ -55,28 +49,6 @@ describe Spree::AmazonController do
         post :delivery
 
         expect(order.reload.delivery?).to be true
-      end
-    end
-
-    context "when the user hasn't selected an amazon address" do
-      it "redirects to the address action" do
-        order = create(:order_with_totals)
-        set_current_order(order)
-        select_amazon_address(nil)
-
-        post :delivery
-
-        expect(response).to redirect_to('/amazon_order/address')
-      end
-
-      it "displays a flash message" do
-        order = create(:order_with_totals)
-        set_current_order(order)
-        select_amazon_address(nil)
-
-        post :delivery
-
-        expect(flash[:notice]).to eq("Unable to load Address data from Amazon")
       end
     end
   end

@@ -38,6 +38,7 @@ class AmazonMwsOrderResponse
 end
 
 class AmazonMws
+  delegate :get_order_reference_details, to: :client
 
   def initialize(amazon_order_reference_id, gateway:, address_consent_token: nil)
     @amazon_order_reference_id = amazon_order_reference_id
@@ -47,15 +48,8 @@ class AmazonMws
 
 
   def fetch_order_data
-    params = {
-      "Action"=>"GetOrderReferenceDetails",
-      "AmazonOrderReferenceId" => @amazon_order_reference_id,
-    }
-    if @address_consent_token
-      params.merge!('AddressConsentToken' => @address_consent_token)
-    end
     AmazonMwsOrderResponse.new(
-      get_order_reference_details(params)
+      get_order_reference_details(@amazon_order_reference_id, address_consent_token: @address_consent_token)
     )
   end
 
@@ -76,10 +70,6 @@ class AmazonMws
       total,
       currency_code: currency
     )
-  end
-
-  def get_order_reference_details(params)
-    client.get_order_reference_details(params)
   end
 
   def confirm_order
