@@ -11,6 +11,7 @@ class Spree::AmazonController < Spree::StoreController
   helper 'spree/orders'
   before_action :check_current_order
   before_action :check_amazon_reference_id, only: [:delivery, :complete]
+  skip_before_action :verify_authenticity_token, only: %i[payment confirm complete]
 
   respond_to :json
 
