@@ -55,7 +55,7 @@ class Spree::AmazonController < Spree::StoreController
       current_order.reload
       render layout: false
     else
-      redirect_to address_amazon_order_path, notice: "Unable to load Address data from Amazon"
+      head :ok
     end
   end
 
@@ -147,14 +147,13 @@ class Spree::AmazonController < Spree::StoreController
 
   def check_current_order
     unless current_order
-      redirect_to root_path, notice: "No Order Found"
+      head :ok
     end
   end
 
   def check_amazon_reference_id
     unless current_order.amazon_order_reference_id
-      flash.now[:notice] = 'No order reference found'
-      redirect_to root_path
+      head :ok
     end
   end
 end
