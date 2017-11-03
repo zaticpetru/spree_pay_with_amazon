@@ -8,7 +8,9 @@
 <%# %>
 
 <%
-  gateway = Spree::Gateway::Amazon.for_currency(@order.currency)
+  gateway = Spree::Gateway::Amazon.for_currency(current_order(create_order_if_necessary: true).currency)
+  button_type = 'PwA' unless local_assigns[:button_type]
+  return_path = '/amazon_order/address' unless local_assigns[:return_path]
 %>
 
 <script type='text/javascript'>
@@ -27,11 +29,11 @@
 <script type="text/javascript">
   var authRequest;
   OffAmazonPayments.Button("AmazonPayButton", "<%= gateway.preferred_merchant_id %>", {
-    type: "PwA",
-        authorization: function() {
+    type: '<%= button_type %>',
+    authorization: function() {
       loginOptions =
         {scope: "profile postal_code payments:widget payments:shipping_address", popup: "true"};
-      authRequest = amazon.Login.authorize (loginOptions, "/amazon_order/address");
+      authRequest = amazon.Login.authorize (loginOptions, '<%= return_path %>');
     },
     onError: function(error) {
       // your error handling code
