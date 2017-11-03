@@ -23,8 +23,9 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def payment
+    payment_count = current_order.payments.count
     payment = current_order.payments.valid.amazon.first || current_order.payments.create
-    payment.number = params[:order_reference]
+    payment.number = "#{params[:order_reference]}_#{payment_count}"
     payment.payment_method = gateway
     payment.source ||= Spree::AmazonTransaction.create(
       order_reference: params[:order_reference],
