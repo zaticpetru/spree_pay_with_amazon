@@ -17,6 +17,7 @@ module Spree
     preference :aws_access_key_id, :string
     preference :aws_secret_access_key, :string
     preference :region, :string, default: 'us'
+    preference :site_domain, :string
 
     has_one :provider
 

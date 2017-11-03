@@ -14,6 +14,9 @@
 <script type='text/javascript'>
   window.onAmazonLoginReady = function() {
     amazon.Login.setClientId('<%= gateway.preferred_client_id %>');
+    <% if gateway.preferred_site_domain.present? %>
+      amazon.Login.setSiteDomain('<%= gateway.preferred_site_domain %>');
+    <% end %>
   };
 </script>
 

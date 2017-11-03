@@ -12,6 +12,9 @@
   <script type='text/javascript'>
     window.onAmazonLoginReady = function() {
       amazon.Login.setClientId('<%= @amazon_gateway.preferred_client_id %>');
+      <% if @amazon_gateway.preferred_site_domain.present? %>
+        amazon.Login.setSiteDomain('<%= @amazon_gateway.preferred_site_domain %>');
+      <% end %>
       $('#continue_to_delivery').click();
     };
   </script>
