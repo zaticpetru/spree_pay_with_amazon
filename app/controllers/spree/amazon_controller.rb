@@ -46,9 +46,9 @@ class Spree::AmazonController < Spree::StoreController
     current_order.state = "address"
 
     if address
-      current_order.email = "pending@amazon.com"
-      update_current_order_address!(:ship_address, address)
-      update_current_order_address!(:bill_address, address)
+      current_order.email = spree_current_user.try(:email) || "pending@amazon.com"
+      update_current_order_address!(:ship_address, address, spree_current_user.try(:ship_address))
+      update_current_order_address!(:bill_address, address, spree_current_user.try(:bill_address))
 
       current_order.save!
       current_order.next
@@ -129,25 +129,25 @@ class Spree::AmazonController < Spree::StoreController
     params.require(:order).permit(permitted_checkout_attributes)
   end
 
-  def update_current_order_address!(address_type, amazon_address)
-    new_address = Spree::Address.new address_attributes(amazon_address)
+  def update_current_order_address!(address_type, amazon_address, spree_user_address = nil)
+    new_address = Spree::Address.new address_attributes(amazon_address, spree_user_address)
     new_address.save!
 
     current_order.send("#{address_type}_id=", new_address.id)
     current_order.save!
   end
 
-  def address_attributes(amazon_address)
+  def address_attributes(amazon_address, spree_user_address = nil)
     {
-      firstname: amazon_address.first_name || "Amazon",
-      lastname: amazon_address.last_name || "User",
-      address1: amazon_address.address1 || "N/A",
-      address2: amazon_address.address2 || "N/A",
-      phone: amazon_address.phone || "N/A",
-      city: amazon_address.city,
-      zipcode: amazon_address.zipcode,
-      state_name: amazon_address.state_name,
-      country: amazon_address.country
+      firstname: amazon_address.first_name || spree_user_address.try(:first_name) || "Amazon",
+      lastname: amazon_address.last_name || spree_user_address.try(:last_name) || "User",
+      address1: amazon_address.address1 || spree_user_address.try(:address1) || "N/A",
+      address2: amazon_address.address2 || spree_user_address.try(:address2) || "N/A",
+      phone: amazon_address.phone || spree_user_address.try(:phone) || "N/A",
+      city: amazon_address.city || spree_user_address.try(:city),
+      zipcode: amazon_address.zipcode || spree_user_address.try(:zipcode),
+      state_name: amazon_address.state_name || spree_user_address.try(:state_name),
+      country: amazon_address.country || spree_user_address.try(:country)
     }
   end
 
