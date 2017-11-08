@@ -24,4 +24,12 @@ Spree::Order.class_eval do
     end
   end
   prepend ConfirmationRequiredWithAmazon
+
+  module CancelDefaultCreditCardWhenValidAmazon
+    def assign_default_credit_card
+      return if payments.valid.amazon.count > 0
+      super
+    end
+  end
+  prepend CancelDefaultCreditCardWhenValidAmazon
 end
