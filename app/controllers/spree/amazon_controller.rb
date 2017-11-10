@@ -118,11 +118,12 @@ class Spree::AmazonController < Spree::StoreController
       seller_order_id: current_order.number,
       store_name: current_order.store.name,
     )
-    amazon_order.confirm
-    amazon_order.fetch
+    if amazon_order.confirm.success
+      amazon_order.fetch
 
-    current_order.email = amazon_order.email
-    update_current_order_address!(:ship_address, amazon_order.address)
+      current_order.email = amazon_order.email
+      update_current_order_address!(:ship_address, amazon_order.address)
+    end
   end
 
   def checkout_params
