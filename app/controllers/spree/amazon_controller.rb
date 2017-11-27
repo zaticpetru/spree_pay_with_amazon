@@ -85,6 +85,7 @@ class Spree::AmazonController < Spree::StoreController
     if @order.confirm? && @order.next
       @current_order = nil
       flash.notice = Spree.t(:order_processed_successfully)
+      flash[:order_completed] = true
       redirect_to spree.order_path(@order)
     else
       @order.state = 'cart'
