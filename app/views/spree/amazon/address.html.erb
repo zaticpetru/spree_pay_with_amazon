@@ -26,9 +26,13 @@
       new OffAmazonPayments.Widgets.AddressBook({
         sellerId: '<%= @amazon_gateway.preferred_merchant_id %>',
         agreementType: 'orderreference',
-        onOrderReferenceCreate: function(orderReference) {
-          order_reference = orderReference.getAmazonOrderReferenceId();
-        },
+          onOrderReferenceCreate: function(orderReference) {
+          <%# if current_order.amazon_transaction.nil? %>
+            order_reference = orderReference.getAmazonOrderReferenceId();
+          <%# else %>
+            // order_reference = '<%= current_order.amazon_order_reference_id %>' ;
+          <%# end %>
+          },
         onAddressSelect: function(orderReference) {
           <%= render 'spree/amazon/payment' %>
         },

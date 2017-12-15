@@ -112,7 +112,13 @@ module Spree
           message = "#{mws_res.code} #{mws_res.body}"
         end
       end
-
+      order.amazon_transaction.update!(
+        authorization_success: success,
+        message: message,
+        authorization_reference_id: authorization_reference_id,
+        soft_decline: amazon_response.soft_decline?,
+        retry: !success
+      )
       ActiveMerchant::Billing::Response.new(
         success,
         message,

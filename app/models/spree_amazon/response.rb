@@ -80,6 +80,10 @@ class SpreeAmazon::Response
     def response_details
       "AuthorizeResponse/AuthorizeResult/AuthorizationDetails"
     end
+
+    def soft_decline?
+      fetch(response_details, 'SoftDecline').to_s != 'false'
+    end
   end
 
   class Capture < SpreeAmazon::Response
