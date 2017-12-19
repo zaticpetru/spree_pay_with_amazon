@@ -30,7 +30,7 @@ class Spree::AmazonController < Spree::StoreController
     payment.source ||= Spree::AmazonTransaction.create(
       order_reference: params[:order_reference],
       order_id: current_order.id,
-      retry: current_order.amazon_transactions.where(authorization_success: false).any?
+      retry: current_order.amazon_transactions.unsuccessful.any?
     )
 
     payment.save!
@@ -82,7 +82,7 @@ class Spree::AmazonController < Spree::StoreController
     @order = current_order
     authorize!(:edit, @order, cookies.signed[:guest_token])
     complete_amazon_order!
-    
+
     if @order.confirm? && @order.next
       @current_order = nil
       flash.notice = Spree.t(:order_processed_successfully)
@@ -97,7 +97,7 @@ class Spree::AmazonController < Spree::StoreController
       else
         @order.amazon_transactions.destroy_all
         @order.save!
-        redirect_to cart_path, notice: "Your payment could not be processed. Please try to place the order again using another payment method."
+        redirect_to cart_path, notice: Spree.t(:order_processed_unsuccessfully)
       end
     end
   end
@@ -122,7 +122,7 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def complete_amazon_order!
-    unless @order.amazon_transaction.try(:retry)
+    unless @order.amazon_transaction.retry
       amazon_order.set_order_reference_details(
         current_order.total,
         seller_order_id: current_order.number,

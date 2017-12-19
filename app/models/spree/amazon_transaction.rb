@@ -11,6 +11,8 @@ module Spree
   class AmazonTransaction < ActiveRecord::Base
     has_many :payments, :as => :source
 
+    scope :unsuccessful, ->{ where(authorization_success: false) }
+
     def name
       "Pay with Amazon"
     end

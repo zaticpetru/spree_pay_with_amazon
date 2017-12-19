@@ -112,6 +112,8 @@ module Spree
           message = "#{mws_res.code} #{mws_res.body}"
         end
       end
+
+      # Saving information in last amazon transaction for error flow in amazon controller
       order.amazon_transaction.update!(
         authorization_success: success,
         message: message,
