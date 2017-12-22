@@ -115,7 +115,7 @@ module Spree
 
       # Saving information in last amazon transaction for error flow in amazon controller
       order.amazon_transaction.update!(
-        authorization_success: success,
+        success: success,
         message: message,
         authorization_reference_id: authorization_reference_id,
         soft_decline: amazon_response.soft_decline?,

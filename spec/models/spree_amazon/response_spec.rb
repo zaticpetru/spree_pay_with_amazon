@@ -348,7 +348,6 @@ describe SpreeAmazon::Response do
         )
       }
 
-
       describe '#reason_code' do
         context 'successful auth' do
           it 'returns nil' do
@@ -365,6 +364,48 @@ describe SpreeAmazon::Response do
             auth_response = SpreeAmazon::Response::Authorization.new(response)
 
             expect(auth_response.reason_code).to eq('InvalidPaymentMethod')
+          end
+        end
+      end
+      
+      describe '#soft_decline?' do
+        context 'it is null' do
+          it 'return true' do
+            stub_auth_request(
+              order: order,
+              auth_ref: 'AUTH_REF',
+              status: 200,
+              body: build_mws_auth_declined_response(order: order, auth_ref: 'AUTH_REF', soft_decline: nil)
+            )
+            auth_response = SpreeAmazon::Response::Authorization.new(response)
+
+            expect(auth_response.soft_decline?).to eq(true)
+          end
+        end
+        context 'it is true' do
+          it 'return true' do
+            stub_auth_request(
+              order: order,
+              auth_ref: 'AUTH_REF',
+              status: 200,
+              body: build_mws_auth_declined_response(order: order, auth_ref: 'AUTH_REF', soft_decline: nil, soft_decline: true)
+            )
+            auth_response = SpreeAmazon::Response::Authorization.new(response)
+
+            expect(auth_response.soft_decline?).to eq(true)
+          end
+        end
+        context 'it is false' do
+          it 'return false' do
+            stub_auth_request(
+              order: order,
+              auth_ref: 'AUTH_REF',
+              status: 200,
+              body: build_mws_auth_declined_response(order: order, auth_ref: 'AUTH_REF', soft_decline: nil, soft_decline: false)
+            )
+            auth_response = SpreeAmazon::Response::Authorization.new(response)
+
+            expect(auth_response.soft_decline?).to eq(false)
           end
         end
       end
@@ -484,7 +525,8 @@ describe SpreeAmazon::Response do
   def build_mws_auth_declined_response(
     order:,
     auth_ref: 'some-authorization-reference-id',
-    amazon_authorization_id: 'some-amazon-authorization-id'
+    amazon_authorization_id: 'some-amazon-authorization-id',
+    soft_decline: true
   )
     <<-XML.strip_heredoc
       <AuthorizeResponse xmlns="http://mws.amazonservices.com/schema/OffAmazonPayments/2013-01-01">
@@ -499,7 +541,7 @@ describe SpreeAmazon::Response do
               <Amount>0</Amount>
             </CapturedAmount>
             <ExpirationTimestamp>2016-08-31T20:03:42.608Z</ExpirationTimestamp>
-            <SoftDecline>false</SoftDecline>
+            <SoftDecline>#{soft_decline}</SoftDecline>
             <AuthorizationStatus>
               <LastUpdateTimestamp>2016-08-01T20:03:42.608Z</LastUpdateTimestamp>
               <State>Declined</State>
