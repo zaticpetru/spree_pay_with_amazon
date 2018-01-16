@@ -53,7 +53,7 @@ class SpreeAmazon::Order
   # @param amazon_options [Hash] These options are forwarded to the underlying
   #   call to PayWithAmazon::Client#set_order_reference_details
   def set_order_reference_details(total, amazon_options={})
-    mws.set_order_reference_details(total, amazon_options)
+    SpreeAmazon::Response::SetOrderReferenceDetails.new mws.set_order_reference_details(total, amazon_options)
   end
 
   private

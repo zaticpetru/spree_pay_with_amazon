@@ -84,6 +84,7 @@ describe Spree::Gateway::Amazon do
         expect(response).not_to be_success
         expect(response.message).to eq('Authorization failure: InvalidPaymentMethod')
       end
+      
       it 'updates last amazon transaction' do
         stub_auth_request(return_values: {
           headers: {'content-type' => 'text/xml'},

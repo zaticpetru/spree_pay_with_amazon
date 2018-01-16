@@ -32,9 +32,9 @@ class Spree::AmazonController < Spree::StoreController
       order_id: current_order.id,
       retry: current_order.amazon_transactions.unsuccessful.any?
     )
-
+    
     payment.save!
-
+    
     render json: {}
   end
 
@@ -81,6 +81,14 @@ class Spree::AmazonController < Spree::StoreController
   def complete
     @order = current_order
     authorize!(:edit, @order, cookies.signed[:guest_token])
+    
+    unless @order.amazon_transaction.retry
+      amazon_response = set_order_reference_details!
+      unless amazon_response.constraints.blank?
+        redirect_to address_amazon_order_path, notice: amazon_response.constraints and return
+      end
+    end
+    
     complete_amazon_order!
 
     if @order.confirm? && @order.next
@@ -91,6 +99,7 @@ class Spree::AmazonController < Spree::StoreController
     else
       amazon_transaction = @order.amazon_transaction
       @order.state = 'cart'
+      amazon_transaction.reload
       if amazon_transaction.soft_decline
         @order.save!
         redirect_to address_amazon_order_path, notice: amazon_transaction.message
@@ -121,15 +130,15 @@ class Spree::AmazonController < Spree::StoreController
     payment.save!
   end
 
-  def complete_amazon_order!
-    unless @order.amazon_transaction.retry
-      amazon_order.set_order_reference_details(
+  def set_order_reference_details!
+    amazon_order.set_order_reference_details(
         current_order.total,
         seller_order_id: current_order.number,
         store_name: current_order.store.name,
       )
-    end
-    
+  end
+  
+  def complete_amazon_order!
     confirm_response = amazon_order.confirm
     if confirm_response.success
       amazon_order.fetch
