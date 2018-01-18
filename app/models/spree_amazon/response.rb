@@ -80,8 +80,24 @@ class SpreeAmazon::Response
     def response_details
       "AuthorizeResponse/AuthorizeResult/AuthorizationDetails"
     end
+
+    def soft_decline?
+      fetch(response_details, 'SoftDecline').to_s != 'false'
+    end
   end
 
   class Capture < SpreeAmazon::Response
+  end
+  
+  class SetOrderReferenceDetails < SpreeAmazon::Response
+    
+    def response_details
+      "SetOrderReferenceDetailsResponse/SetOrderReferenceDetailsResult/OrderReferenceDetails"
+    end
+    
+    def constraints
+      fetch("#{response_details}/Constraints/Constraint" , 'Description')
+    end
+    
   end
 end

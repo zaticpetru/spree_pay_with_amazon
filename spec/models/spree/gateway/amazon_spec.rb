@@ -59,6 +59,16 @@ describe Spree::Gateway::Amazon do
 
         expect(response).to be_success
       end
+      it 'updates last amazon transaction' do
+        stub_auth_request
+
+        response = payment_method.authorize(order.total, payment_source, {order_id: gateway_options.order_id})
+
+        amazon_transaction = order.amazon_transaction
+        expect(amazon_transaction).to be_success
+        expect(amazon_transaction.retry).to be false
+        expect(amazon_transaction.message).to eq('Success')
+      end
     end
 
     context 'when declined' do
@@ -73,6 +83,20 @@ describe Spree::Gateway::Amazon do
 
         expect(response).not_to be_success
         expect(response.message).to eq('Authorization failure: InvalidPaymentMethod')
+      end
+      
+      it 'updates last amazon transaction' do
+        stub_auth_request(return_values: {
+          headers: {'content-type' => 'text/xml'},
+          status: 200,
+          body: build_mws_auth_declined_response(order: order),
+        })
+
+        response = payment_method.authorize(order.total, payment_source, {order_id: gateway_options.order_id})
+        amazon_transaction = order.amazon_transaction
+        expect(amazon_transaction).not_to be_success
+        expect(amazon_transaction.retry).to be true
+        expect(amazon_transaction.message).to eq('Authorization failure: InvalidPaymentMethod')
       end
     end
 

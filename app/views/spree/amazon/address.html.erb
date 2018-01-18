@@ -23,22 +23,58 @@
 
   <script>
     $( document ).ready(function() {
-      new OffAmazonPayments.Widgets.AddressBook({
-        sellerId: '<%= @amazon_gateway.preferred_merchant_id %>',
-        agreementType: 'orderreference',
-        onOrderReferenceCreate: function(orderReference) {
-          order_reference = orderReference.getAmazonOrderReferenceId();
-        },
-        onAddressSelect: function(orderReference) {
-          <%= render 'spree/amazon/payment' %>
-        },
-        design: {
-          designMode: 'responsive'
-        },
-        onError: function(error) {
-         console.log(error.getErrorMessage());
-        }
-      }).bind("addressBookWidgetDiv");
+      <% unless current_order.amazon_transaction.try(:retry) %>
+        new OffAmazonPayments.Widgets.AddressBook({
+          sellerId: '<%= @amazon_gateway.preferred_merchant_id %>',
+          agreementType: 'orderreference',
+          onOrderReferenceCreate: function(orderReference) {
+              order_reference = orderReference.getAmazonOrderReferenceId();
+            },
+          onAddressSelect: function(orderReference) {
+            <%= render 'spree/amazon/payment' %>
+          },
+          design: {
+            designMode: 'responsive'
+          },
+          onError: function(error) {
+           console.log(error.getErrorMessage());
+          }
+        }).bind("addressBookWidgetDiv");
+      <% else %>
+        new OffAmazonPayments.Widgets.AddressBook({
+          sellerId: '<%= @amazon_gateway.preferred_merchant_id %>',
+          agreementType: 'orderreference',
+          amazonOrderReferenceId: '<%= current_order.amazon_order_reference_id %>',
+          // amazonOrderReferenceId obtained from Address widget
+          displayMode: "Read",
+          design: {
+            designMode: 'responsive'
+          },
+          onError: function(error) {
+           console.log(error.getErrorMessage());
+          }
+        }).bind("addressBookWidgetDiv");
+        new OffAmazonPayments.Widgets.Wallet({
+          sellerId: '<%= @amazon_gateway.preferred_merchant_id %>',
+          amazonOrderReferenceId: '<%= current_order.amazon_order_reference_id %>',
+          onPaymentSelect: function(orderReference) {
+            jQuery.post(
+              '/amazon_order/payment',
+              {"order_reference": '<%= current_order.amazon_order_reference_id %>'},
+              function() {
+                $('#continue_to_delivery').click();
+              }
+            );
+          },
+          design: {
+            designMode: 'responsive'
+          },
+          onError: function(error) {
+            // your error handling code
+          }
+        }).bind("walletWidgetDiv");
+      <% end %>
+      
       $('#continue_to_delivery').click();
       $('#continue_to_delivery').click(function () {
         $("#deliveryOptionDiv").html('Loading...');

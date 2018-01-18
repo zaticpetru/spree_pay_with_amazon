@@ -29,11 +29,12 @@ class Spree::AmazonController < Spree::StoreController
     payment.payment_method = gateway
     payment.source ||= Spree::AmazonTransaction.create(
       order_reference: params[:order_reference],
-      order_id: current_order.id
+      order_id: current_order.id,
+      retry: current_order.amazon_transactions.unsuccessful.any?
     )
-
+    
     payment.save!
-
+    
     render json: {}
   end
 
@@ -80,6 +81,14 @@ class Spree::AmazonController < Spree::StoreController
   def complete
     @order = current_order
     authorize!(:edit, @order, cookies.signed[:guest_token])
+    
+    unless @order.amazon_transaction.retry
+      amazon_response = set_order_reference_details!
+      unless amazon_response.constraints.blank?
+        redirect_to address_amazon_order_path, notice: amazon_response.constraints and return
+      end
+    end
+    
     complete_amazon_order!
 
     if @order.confirm? && @order.next
@@ -88,9 +97,17 @@ class Spree::AmazonController < Spree::StoreController
       flash[:order_completed] = true
       redirect_to spree.order_path(@order)
     else
+      amazon_transaction = @order.amazon_transaction
       @order.state = 'cart'
-      @order.amazon_transactions.destroy_all
-      redirect_to cart_path, notice: "Unable to process order"
+      amazon_transaction.reload
+      if amazon_transaction.soft_decline
+        @order.save!
+        redirect_to address_amazon_order_path, notice: amazon_transaction.message
+      else
+        @order.amazon_transactions.destroy_all
+        @order.save!
+        redirect_to cart_path, notice: Spree.t(:order_processed_unsuccessfully)
+      end
     end
   end
 
@@ -113,15 +130,19 @@ class Spree::AmazonController < Spree::StoreController
     payment.save!
   end
 
-  def complete_amazon_order!
+  def set_order_reference_details!
     amazon_order.set_order_reference_details(
-      current_order.total,
-      seller_order_id: current_order.number,
-      store_name: current_order.store.name,
-    )
-    if amazon_order.confirm.success
+        current_order.total,
+        seller_order_id: current_order.number,
+        store_name: current_order.store.name,
+      )
+  end
+  
+  def complete_amazon_order!
+    confirm_response = amazon_order.confirm
+    if confirm_response.success
       amazon_order.fetch
-
+      
       current_order.email = amazon_order.email
       update_current_order_address!(:ship_address, amazon_order.address)
     end

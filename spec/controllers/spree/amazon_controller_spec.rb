@@ -123,7 +123,7 @@ describe Spree::AmazonController do
         amazon_order.email = email
         amazon_order
       }
-      allow_any_instance_of(SpreeAmazon::Order).to receive(:confirm).and_return(nil)
+      allow_any_instance_of(SpreeAmazon::Order).to receive(:confirm).and_return(instance_double("AmazonPay::Response", :success => true))
       allow_any_instance_of(SpreeAmazon::Order).to receive(:set_order_reference_details).and_return(nil)
       allow_any_instance_of(Spree::Gateway::Amazon).to receive(:authorize).and_return(gateway_response)
     end
@@ -190,25 +190,16 @@ describe Spree::AmazonController do
 
     context "when the order can't be completed" do
       # Order won't be able to complete as the payment is missing
-      it "redirects to the cart page" do
+      it "redirects to the address page" do
         order = create(:order_with_line_items)
         set_current_order(order)
         stub_amazon_order
 
         post :complete, params: { order: {} }
 
-        expect(response).to redirect_to('/cart')
+        expect(response).to redirect_to('/amazon_order/address')
       end
-
-      it "sets an error message" do
-        order = create(:order_with_line_items)
-        set_current_order(order)
-        stub_amazon_order
-
-        post :complete, params: { order: {} }
-
-        expect(flash[:notice]).to eq("Unable to process order")
-      end
+      
     end
   end
 
@@ -242,6 +233,13 @@ describe Spree::AmazonController do
   def create_order_payment(order, amount: nil)
     transaction = Spree::AmazonTransaction.create!(
       order_id: order.id, order_reference: 'REFERENCE'
+    )
+    order.payments.create!(payment_method: gateway, source: transaction, amount: amount || order.total)
+  end
+  
+  def create_declined_order_payment(order, amount: nil)
+    transaction = Spree::AmazonTransaction.create!(
+      order_id: order.id, order_reference: 'REFERENCE', success: false, soft_decline: false
     )
     order.payments.create!(payment_method: gateway, source: transaction, amount: amount || order.total)
   end

@@ -93,26 +93,32 @@ module Spree
       amazon_response = SpreeAmazon::Response::Authorization.new(mws_res)
       parsed_response = amazon_response.parse rescue nil
 
-      if amazon_response.success?
-        if amazon_response.state == 'Open'
-          success = true
-          order.amazon_transaction.update!(
-            authorization_id: amazon_response.response_id
-          )
-          message = 'Success'
+      if amazon_response.state == 'Declined'
+        success = false
+        if amazon_response.reason_code == 'InvalidPaymentMethod'
+          soft_decline = true
+          message = amazon_response.error_message
         else
-          success = false
+          soft_decline = false
           message = "Authorization failure: #{amazon_response.reason_code}"
         end
       else
-        success = false
-        if !amazon_response.body.nil? && amazon_response.error_response_present?
-          message = "#{amazon_response.response_code} #{amazon_response.error_code}: #{amazon_response.error_message}"
-        else
-          message = "#{mws_res.code} #{mws_res.body}"
-        end
+        success = true
+        order.amazon_transaction.update!(
+          authorization_id: amazon_response.response_id
+        )
+        message = 'Success'
+        soft_decline = nil
       end
 
+      # Saving information in last amazon transaction for error flow in amazon controller
+      order.amazon_transaction.update!(
+        success: success,
+        message: message,
+        authorization_reference_id: authorization_reference_id,
+        soft_decline: soft_decline,
+        retry: !success
+      )
       ActiveMerchant::Billing::Response.new(
         success,
         message,

@@ -18,3 +18,4 @@ en:
     aws_access_key_id: AWS Access Key ID
     aws_secret_access_key: AWS Secret Access Key
     order_reference_id: Order Reference ID
+    order_processed_unsuccessfully: Your payment could not be processed. Please try to place the order again using another payment method.
