@@ -24,25 +24,25 @@ class Spree::AmazonController < Spree::StoreController
 
   def payment
     payment_count = current_order.payments.count
-    payment = current_order.payments.valid.amazon.first || current_order.payments.create
-    payment.number = "#{params[:order_reference]}_#{payment_count}"
+    payment = current_order.payments.valid.amazon.first || current_order.payments.create(number: "#{params[:order_reference]}_#{payment_count}")
     payment.payment_method = gateway
     payment.source ||= Spree::AmazonTransaction.create(
-      order_reference: params[:order_reference],
       order_id: current_order.id,
       retry: current_order.amazon_transactions.unsuccessful.any?
     )
+    payment.source.order_reference = params[:order_reference]
     
     payment.save!
+    payment.source.save!
     
     render json: {}
   end
 
   def delivery
-    address = SpreeAmazon::Address.find(
-      current_order.amazon_order_reference_id,
-      gateway: gateway,
-    )
+      address = SpreeAmazon::Address.find(
+        current_order.amazon_order_reference_id,
+        gateway: gateway,
+      )
 
     current_order.state = "address"
 

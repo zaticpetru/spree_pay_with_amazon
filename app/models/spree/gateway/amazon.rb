@@ -99,6 +99,10 @@ module Spree
           soft_decline = true
           message = amazon_response.error_message
         else
+          order_response = @mws.fetch_order_data
+          if order_response.state == 'Open'
+            @mws.cancel
+          end
           soft_decline = false
           message = "Authorization failure: #{amazon_response.reason_code}"
         end
