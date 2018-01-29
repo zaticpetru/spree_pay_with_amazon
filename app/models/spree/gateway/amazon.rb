@@ -97,7 +97,7 @@ module Spree
         success = false
         if amazon_response.reason_code == 'InvalidPaymentMethod'
           soft_decline = true
-          message = amazon_response.error_message
+          message = Spree.t(:invalid_payment_method)
         else
           order_response = @mws.fetch_order_data
           if order_response.state == 'Open'

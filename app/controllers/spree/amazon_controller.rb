@@ -17,7 +17,7 @@ class Spree::AmazonController < Spree::StoreController
 
   def address
     @amazon_gateway = gateway
-
+    session[:amazon_session_token] = params[:access_token] unless params[:access_token].blank?
     current_order.state = 'address'
     current_order.save!
   end
@@ -39,10 +39,11 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def delivery
-      address = SpreeAmazon::Address.find(
-        current_order.amazon_order_reference_id,
-        gateway: gateway,
-      )
+    address = SpreeAmazon::Address.find(
+      current_order.amazon_order_reference_id,
+      gateway: gateway,
+      address_consent_token: session[:amazon_session_token]
+    )
 
     current_order.state = "address"
 
