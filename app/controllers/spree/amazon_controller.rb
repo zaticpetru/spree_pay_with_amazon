@@ -45,16 +45,12 @@ class Spree::AmazonController < Spree::StoreController
       address_consent_token: session[:amazon_session_token]
     )
 
-    d { address }
-
     current_order.state = "address"
 
     if address
       current_order.email = spree_current_user.try(:email) || "pending@amazon.com"
       update_current_order_address!(:ship_address, address)
       update_current_order_address!(:bill_address, address)
-      d { current_order.ship_address }
-      d { current_order.bill_address }
 
       current_order.save!
       current_order.next
