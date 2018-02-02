@@ -20,3 +20,6 @@ en:
     order_reference_id: Order Reference ID
     order_processed_unsuccessfully: Your payment could not be processed. Please try to place the order again using another payment method.
     invalid_payment_method: Your payment could not be processed, please follow the instructions in the payment method box.
+    constraints:
+      payment_method_not_allowed: The selected payment method is not available for this transaction. Please select another one or add a new payment method to the wallet widget.
+      amount_not_set: The order failed due to a technical error, please select another payment method or contact our support.

@@ -31,10 +31,10 @@ class Spree::AmazonController < Spree::StoreController
       retry: current_order.amazon_transactions.unsuccessful.any?
     )
     payment.source.order_reference = params[:order_reference]
-    
+
     payment.save!
     payment.source.save!
-    
+
     render json: {}
   end
 
@@ -45,12 +45,16 @@ class Spree::AmazonController < Spree::StoreController
       address_consent_token: session[:amazon_session_token]
     )
 
+    d { address }
+
     current_order.state = "address"
 
     if address
       current_order.email = spree_current_user.try(:email) || "pending@amazon.com"
-      update_current_order_address!(:ship_address, address, spree_current_user.try(:ship_address))
-      update_current_order_address!(:bill_address, address, spree_current_user.try(:bill_address))
+      update_current_order_address!(:ship_address, address)
+      update_current_order_address!(:bill_address, address)
+      d { current_order.ship_address }
+      d { current_order.bill_address }
 
       current_order.save!
       current_order.next
@@ -82,14 +86,14 @@ class Spree::AmazonController < Spree::StoreController
   def complete
     @order = current_order
     authorize!(:edit, @order, cookies.signed[:guest_token])
-    
+
     unless @order.amazon_transaction.retry
       amazon_response = set_order_reference_details!
-      unless amazon_response.constraints.blank?
-        redirect_to address_amazon_order_path, notice: amazon_response.constraints and return
+      unless amazon_response.constraint_id.blank?
+        redirect_to address_amazon_order_path, notice: Spree.t("constraints.#{amazon_response.constraint_id.underscore}") and return
       end
     end
-    
+
     complete_amazon_order!
 
     if @order.confirm? && @order.next
@@ -138,12 +142,12 @@ class Spree::AmazonController < Spree::StoreController
         store_name: current_order.store.name,
       )
   end
-  
+
   def complete_amazon_order!
     confirm_response = amazon_order.confirm
     if confirm_response.success
       amazon_order.fetch
-      
+
       current_order.email = amazon_order.email
       update_current_order_address!(:ship_address, amazon_order.address)
     end
@@ -153,21 +157,21 @@ class Spree::AmazonController < Spree::StoreController
     params.require(:order).permit(permitted_checkout_attributes)
   end
 
-  def update_current_order_address!(address_type, amazon_address, spree_user_address = nil)
-    new_address = Spree::Address.new address_attributes(amazon_address, spree_user_address)
+  def update_current_order_address!(address_type, amazon_address)
+    new_address = Spree::Address.new address_attributes(amazon_address)
     new_address.save!
 
     current_order.send("#{address_type}_id=", new_address.id)
     current_order.save!
   end
 
-  def address_attributes(amazon_address, spree_user_address = nil)
+  def address_attributes(amazon_address)
     {
-      firstname: amazon_address.first_name || spree_user_address.try(:first_name) || "Amazon",
-      lastname: amazon_address.last_name || spree_user_address.try(:last_name) || "User",
-      address1: amazon_address.address1 || spree_user_address.try(:address1) || "N/A",
-      address2: amazon_address.address2 || spree_user_address.try(:address2) || "N/A",
-      phone: amazon_address.phone || spree_user_address.try(:phone) || "N/A",
+      firstname: amazon_address.first_name || "Amazon",
+      lastname: amazon_address.last_name || "User",
+      address1: amazon_address.address1 || "N/A",
+      address2: amazon_address.address2 || "N/A",
+      phone: amazon_address.phone || "N/A",
       city: amazon_address.city || spree_user_address.try(:city),
       zipcode: amazon_address.zipcode || spree_user_address.try(:zipcode),
       state_name: amazon_address.state_name || spree_user_address.try(:state_name),

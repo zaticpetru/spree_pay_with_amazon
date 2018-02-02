@@ -88,16 +88,20 @@ class SpreeAmazon::Response
 
   class Capture < SpreeAmazon::Response
   end
-  
+
   class SetOrderReferenceDetails < SpreeAmazon::Response
-    
+
     def response_details
       "SetOrderReferenceDetailsResponse/SetOrderReferenceDetailsResult/OrderReferenceDetails"
     end
-    
-    def constraints
-      fetch("#{response_details}/Constraints/Constraint" , 'Description')
+
+    def constraint_description
+      fetch("#{response_details}/Constraints/Constraint", 'Description')
     end
-    
+
+    def constraint_id
+      fetch("#{response_details}/Constraints/Constraint", 'ConstraintID')
+    end
+
   end
 end
