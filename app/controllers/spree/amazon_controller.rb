@@ -107,7 +107,7 @@ class Spree::AmazonController < Spree::StoreController
       else
         @order.amazon_transactions.destroy_all
         @order.save!
-        redirect_to cart_path, notice: Spree.t(:order_processed_unsuccessfully)
+        redirect_to amazon_logout_path(redirect_to: cart_path), notice: Spree.t(:order_processed_unsuccessfully)
       end
     end
   end

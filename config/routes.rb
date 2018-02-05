@@ -21,4 +21,5 @@ Spree::Core::Engine.routes.draw do
 
   post 'amazon_callback', to: 'amazon_callback#new'
   get 'amazon_callback', to: 'amazon_callback#new'
+  get 'amazon_logout', to: 'amazon_session#logout'
 end
