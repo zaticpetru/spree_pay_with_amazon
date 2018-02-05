@@ -168,10 +168,10 @@ class Spree::AmazonController < Spree::StoreController
       address1: amazon_address.address1 || "N/A",
       address2: amazon_address.address2 || "N/A",
       phone: amazon_address.phone || "N/A",
-      city: amazon_address.city || spree_user_address.try(:city),
-      zipcode: amazon_address.zipcode || spree_user_address.try(:zipcode),
-      state_name: amazon_address.state_name || spree_user_address.try(:state_name),
-      country: amazon_address.country || spree_user_address.try(:country)
+      city: amazon_address.city,
+      zipcode: amazon_address.zipcode,
+      state_name: amazon_address.state_name,
+      country: amazon_address.country
     }
   end
 
