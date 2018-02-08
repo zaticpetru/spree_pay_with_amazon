@@ -19,6 +19,10 @@ class AmazonMwsOrderResponse
     @response.fetch("GetOrderReferenceDetailsResult", {}).fetch("OrderReferenceDetails", {}).fetch("Destination", {})
   end
 
+  def billing_address
+    @response.fetch("GetOrderReferenceDetailsResult", {}).fetch("OrderReferenceDetails", {}).fetch("BillingAddress", {})
+  end
+
   def constraints
     @response.fetch("GetOrderReferenceDetailsResult", {}).fetch("OrderReferenceDetails", {}).fetch("Constraints", {}).fetch("Constraint", {})
   end

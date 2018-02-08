@@ -2,7 +2,7 @@ class SpreeAmazon::Order
   class CloseFailure < StandardError; end
 
   attr_accessor :state, :total, :email, :address, :reference_id, :currency,
-                :gateway, :address_consent_token
+                :gateway, :address_consent_token, :billing_address
 
   def initialize(attributes)
     if !attributes.key?(:gateway)
@@ -77,7 +77,8 @@ class SpreeAmazon::Order
       state: response.state,
       total: response.total,
       email: response.email,
-      address: SpreeAmazon::Address.from_response(response)
+      address: response.destination['PhysicalDestination'].blank? ? nil : SpreeAmazon::Address.from_attributes(response.destination['PhysicalDestination']),
+      billing_address: response.billing_address['PhysicalAddress'].blank? ? nil : SpreeAmazon::Address.from_attributes(response.billing_address['PhysicalAddress'])
     }
   end
 end

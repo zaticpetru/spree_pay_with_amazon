@@ -32,7 +32,7 @@
     type: '<%= button_type %>',
     authorization: function() {
       loginOptions =
-        {scope: "profile postal_code payments:widget payments:shipping_address", popup: "true"};
+        {scope: "profile postal_code payments:widget payments:shipping_address payments:billing_address", popup: "true"};
       authRequest = amazon.Login.authorize (loginOptions, '<%= return_path %>');
     },
     onError: function(error) {

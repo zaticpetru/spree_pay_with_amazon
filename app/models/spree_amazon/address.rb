@@ -15,7 +15,11 @@ class SpreeAmazon::Address
       end
       new attributes_from_response(response.destination["PhysicalDestination"])
     end
-
+    
+    def from_attributes(response)
+      new attributes_from_response(response)
+    end
+    
     private
 
     def mws(order_reference, gateway:, address_consent_token: nil)
