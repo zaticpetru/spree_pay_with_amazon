@@ -41,11 +41,11 @@ class Spree::AmazonController < Spree::StoreController
   def delivery
     amazon_order.fetch
     current_order.state = "address"
-    
+
     current_order.email = spree_current_user.try(:email) || amazon_order.email || "pending@amazon.com"
     update_current_order_address!(:ship_address, amazon_order.address) unless amazon_order.address.nil?
     update_current_order_address!(:bill_address, amazon_order.billing_address) unless amazon_order.billing_address.nil?
-    
+
     current_order.save!
     current_order.next
 
@@ -60,7 +60,7 @@ class Spree::AmazonController < Spree::StoreController
 
   def confirm
     if current_order.update_from_params(params, permitted_checkout_attributes, request.headers.env)
-      while current_order.next && !current_order.confirm?
+      while !current_order.confirm? && current_order.next 
       end
 
       update_payment_amount!
