@@ -31,7 +31,10 @@ class Spree::AmazonController < Spree::StoreController
       retry: current_order.amazon_transactions.unsuccessful.any?
     )
     payment.source.order_reference = params[:order_reference]
-
+    while !payment.valid? && !payment.errors.get(:number).nil?
+      payment_count += 1
+      payment.number = "#{params[:order_reference]}_#{payment_count}"
+    end
     payment.save!
     payment.source.save!
 
@@ -60,7 +63,7 @@ class Spree::AmazonController < Spree::StoreController
 
   def confirm
     if current_order.update_from_params(params, permitted_checkout_attributes, request.headers.env)
-      while !current_order.confirm? && current_order.next 
+      while !current_order.confirm? && current_order.next
       end
 
       update_payment_amount!
