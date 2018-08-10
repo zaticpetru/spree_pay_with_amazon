@@ -68,7 +68,7 @@ class Spree::AmazonController < Spree::StoreController
         render layout: false
       end
     else
-      render plain: 'Only shippable within the UK'
+      render plain: "Oops! Sorry, we don't ship outside of the UK. Please choose a UK address and continue."
     end
   end
 
