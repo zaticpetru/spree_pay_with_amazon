@@ -52,7 +52,7 @@ class Spree::AmazonController < Spree::StoreController
       gateway: gateway
     )
 
-    if address.country.id == 77
+    if address.country.id == 232
 
       update_current_order_address!(:ship_address, amazon_order.address) unless amazon_order.address.nil?
       update_current_order_address!(:bill_address, amazon_order.billing_address) unless amazon_order.billing_address.nil?
@@ -68,7 +68,7 @@ class Spree::AmazonController < Spree::StoreController
         render layout: false
       end
     else
-      render plain: 'Only shippable within the UK'
+      render plain: 'Only shippable within the 48 contiguous states of the USA'
     end
   end
 
