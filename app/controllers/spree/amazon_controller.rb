@@ -54,18 +54,21 @@ class Spree::AmazonController < Spree::StoreController
 
     if address.country.id == 232
 
-      update_current_order_address!(:ship_address, amazon_order.address) unless amazon_order.address.nil?
-      update_current_order_address!(:bill_address, amazon_order.billing_address) unless amazon_order.billing_address.nil?
+      unless amazon_order.address.nil?
+        update_current_order_address!(:ship_address, amazon_order.address)
+        update_current_order_address!(:bill_address, amazon_order.address)
 
-      current_order.save!
-      current_order.next
+        current_order.save!
+        current_order.next
+        current_order.reload
 
-      current_order.reload
-
-      if current_order.shipments.empty?
-        render plain: 'Not shippable to this address'
+        if current_order.shipments.empty?
+          render plain: 'Not shippable to this address'
+        else
+          render layout: false
+        end
       else
-        render layout: false
+        render plain: 'No shipping address selected'
       end
     else
       render plain: 'Only shippable within the 48 contiguous states of the USA'
@@ -149,9 +152,11 @@ class Spree::AmazonController < Spree::StoreController
     confirm_response = amazon_order.confirm
     if confirm_response.success
       amazon_order.fetch
-
       current_order.email = amazon_order.email
       update_current_order_address!(:ship_address, amazon_order.address)
+      if current_order.bill_address.nil?
+        update_current_order_address!(:bill_address, amazon_order.address)
+      end
     end
   end
 
