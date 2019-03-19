@@ -52,7 +52,7 @@ class Spree::AmazonController < Spree::StoreController
       gateway: gateway
     )
 
-    if address.country.id == 232
+    if address.country.id == 232 && address.state_name && address.state_name != 'HI' && address.state_name != 'AK'
 
       unless amazon_order.address.nil?
         update_current_order_address!(:ship_address, amazon_order.address)
