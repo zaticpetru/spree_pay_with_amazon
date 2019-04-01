@@ -15,6 +15,8 @@ class Spree::AmazonController < Spree::StoreController
 
   respond_to :json
 
+  SHIPPABLE_STATES = ['AL','AR','AZ','CA','CO','CT','DC','DE','FL','GA','IA','ID','IL','IN','KS','KY','LA','MA','MD','ME','MI','MN','MO','MS','MT','NC','ND','NE','NH','NJ','NM','NV','NY','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VA','VT','WA','WI','WV','WY']
+
   def address
     @amazon_gateway = gateway
     session[:amazon_session_token] = params[:access_token] unless params[:access_token].blank?
@@ -52,11 +54,18 @@ class Spree::AmazonController < Spree::StoreController
       gateway: gateway
     )
 
-    if address.country.id == 232 && address.state_name && address.state_name != 'HI' && address.state_name != 'AK'
+    unless amazon_order.address.nil?
 
-      unless amazon_order.address.nil?
-        update_current_order_address!(:ship_address, amazon_order.address)
-        update_current_order_address!(:bill_address, amazon_order.address)
+      update_current_order_address!(:ship_address, amazon_order.address)
+      update_current_order_address!(:bill_address, amazon_order.address)
+
+      if spree_current_user.bill_address.nil? || spree_current_user.ship_address.nil?
+        spree_current_user.bill_address ||= current_order.bill_address
+        spree_current_user.ship_address ||= current_order.ship_address
+        spree_current_user.save!
+      end
+
+      if address.country.id == 232 && address.state_name && SHIPPABLE_STATES.include?(address.state_name)
 
         current_order.save!
         current_order.next
@@ -68,10 +77,10 @@ class Spree::AmazonController < Spree::StoreController
           render layout: false
         end
       else
-        render plain: 'No shipping address selected'
+        render plain: 'Only shippable within the 48 contiguous states of the USA and the District of Columbia'
       end
     else
-      render plain: 'Only shippable within the 48 contiguous states of the USA'
+      render plain: 'No shipping address selected'
     end
   end
 
