@@ -65,7 +65,7 @@ class Spree::AmazonController < Spree::StoreController
         spree_current_user.save!
       end
 
-      if address.country.id == 232 && address.state_name && SHIPPABLE_STATES.include?(address.state_name)
+      if address.country == Spree::Country.us && current_order.ship_address.state.abbr && SHIPPABLE_STATES.include?(current_order.ship_address.state.abbr)
 
         current_order.save!
         current_order.next
@@ -191,6 +191,7 @@ class Spree::AmazonController < Spree::StoreController
       city: amazon_address.city,
       zipcode: amazon_address.zipcode,
       state_name: amazon_address.state_name,
+      state_id: get_state_id(amazon_address.state_name),
       country: amazon_address.country
     }
   end
@@ -206,4 +207,14 @@ class Spree::AmazonController < Spree::StoreController
       head :ok
     end
   end
+
+  def get_state_id(state_name)
+    state = Spree::State.find_all_by_name_or_abbr(state_name).where(country: Spree::Country.us)
+    if state.size >= 1
+      state[0].id
+    else
+      nil
+    end
+  end
+
 end
