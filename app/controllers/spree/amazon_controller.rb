@@ -54,18 +54,22 @@ class Spree::AmazonController < Spree::StoreController
       gateway: gateway
     )
 
-    unless amazon_order.address.nil?
+    unless address.nil? || amazon_order.address.nil?
+      current_state_id = get_state_id(amazon_order.address.state_name)
 
-      update_current_order_address!(:ship_address, amazon_order.address)
-      update_current_order_address!(:bill_address, amazon_order.address)
+      if address.country == Spree::Country.us &&
+        amazon_order.address.state_name &&
+        current_state_id &&
+        SHIPPABLE_STATES.include?(Spree::State.find(current_state_id).abbr)
 
-      if spree_current_user.bill_address.nil? || spree_current_user.ship_address.nil?
-        spree_current_user.bill_address ||= current_order.bill_address
-        spree_current_user.ship_address ||= current_order.ship_address
-        spree_current_user.save!
-      end
+        update_current_order_address!(:ship_address, amazon_order.address)
+        update_current_order_address!(:bill_address, amazon_order.address)
 
-      if address.country == Spree::Country.us && current_order.ship_address.state.abbr && SHIPPABLE_STATES.include?(current_order.ship_address.state.abbr)
+        if spree_current_user.bill_address.nil? || spree_current_user.ship_address.nil?
+          spree_current_user.bill_address ||= current_order.bill_address
+          spree_current_user.ship_address ||= current_order.ship_address
+          spree_current_user.save!
+        end
 
         current_order.save!
         current_order.next
