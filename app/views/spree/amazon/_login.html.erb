@@ -51,10 +51,10 @@
 <script type="text/javascript">
   $(document).ready(function() {
     $("#AmazonPayButton").on("click", function() {
-      if ($.cookie('decluttrVal') != 'loggedIn=1')
+      if (Cookies.get('decluttrVal') != 'loggedIn=1') {
         $("#AmazonOverlay").removeClass("hidden");
         $("body").css("overflow","hidden");
-      )
+      }
     });
 
     $("#closeOverlay").on("click", function() {
