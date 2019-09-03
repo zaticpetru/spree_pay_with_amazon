@@ -77,7 +77,7 @@ class AmazonMws
   end
 
   def confirm_order
-    client.confirm_order_reference(@amazon_order_reference_id)
+    client.confirm_order_reference(@amazon_order_reference_id, success_url: "/amazon_order/complete", failure_url: "/amazon_order/confirmation")
   end
 
   def authorize(authorization_reference_id, total, currency, seller_authorization_note: nil)
