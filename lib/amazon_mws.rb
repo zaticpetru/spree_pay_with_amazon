@@ -77,7 +77,7 @@ class AmazonMws
   end
 
   def confirm_order
-    client.confirm_order_reference(@amazon_order_reference_id, success_url: "https://musicmagpie.ngrok.io:3000/amazon_order/complete", failure_url: "https://musicmagpie.ngrok.io:3000/amazon_order/confirmation")
+    client.confirm_order_reference(@amazon_order_reference_id, success_url: Rails.application.secrets.domain_url + "/amazon_order/complete", failure_url: Rails.application.secrets.domain_url + "/amazon_order/confirmation")
   end
 
   def authorize(authorization_reference_id, total, currency, seller_authorization_note: nil)
