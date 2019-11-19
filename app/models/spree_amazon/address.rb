@@ -63,6 +63,8 @@ class SpreeAmazon::Address
     names = name.split(" ")
     names.shift
     names.join(" ")
+    return nil if names.blank?
+    names
   end
 
   def country
