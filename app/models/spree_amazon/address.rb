@@ -62,9 +62,9 @@ class SpreeAmazon::Address
     return nil if name.blank?
     names = name.split(" ")
     names.shift
-    names.join(" ")
-    return nil if names.blank?
-    names
+    surname = names.join(" ")
+    return nil if surname.blank?
+    surname
   end
 
   def country
