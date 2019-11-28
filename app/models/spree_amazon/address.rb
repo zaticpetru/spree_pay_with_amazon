@@ -54,16 +54,16 @@ class SpreeAmazon::Address
   end
 
   def first_name
-    return nil if name.blank?
+    return 'N/A' if name.blank?
     name.split(" ").first
   end
 
   def last_name
-    return nil if name.blank?
+    return 'N/A' if name.blank?
     names = name.split(" ")
     names.shift
     surname = names.join(" ")
-    return nil if surname.blank?
+    return 'N/A' if surname.blank?
     surname
   end
 
