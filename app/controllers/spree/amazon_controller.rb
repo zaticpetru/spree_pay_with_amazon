@@ -23,20 +23,7 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def payment
-    payment_count = current_order.payments.count
-    payment = current_order.payments.valid.amazon.first || current_order.payments.create(number: "#{params[:order_reference]}_#{payment_count}")
-    payment.payment_method = gateway
-    payment.source ||= Spree::AmazonTransaction.create(
-      order_id: current_order.id,
-      retry: current_order.amazon_transactions.unsuccessful.any?
-    )
-    payment.source.order_reference = params[:order_reference]
-    while !payment.valid? && !payment.errors.get(:number).nil?
-      payment_count += 1
-      payment.number = "#{params[:order_reference]}_#{payment_count}"
-    end
-    payment.save!
-    payment.source.save!
+    create_or_update_payment
 
     render json: {}
   end
@@ -131,7 +118,27 @@ class Spree::AmazonController < Spree::StoreController
     )
   end
 
+  def create_or_update_payment
+    payment_count = current_order.payments.count
+    payment = current_order.payments.valid.amazon.first || current_order.payments.create(number: "#{params[:order_reference]}_#{payment_count}")
+    payment.payment_method = gateway
+    payment.source ||= Spree::AmazonTransaction.create(
+      order_id: current_order.id,
+      retry: current_order.amazon_transactions.unsuccessful.any?
+    )
+    payment.source.order_reference = params[:order_reference]
+    while !payment.valid? && !payment.errors.get(:number).nil?
+      payment_count += 1
+      payment.number = "#{params[:order_reference]}_#{payment_count}"
+    end
+    payment.save!
+    payment.source.save!
+  end
+
   def update_payment_amount!
+    if current_order.payments.valid.amazon.first.nil?
+      create_or_update_payment
+    end
     payment = current_order.payments.valid.amazon.first
     payment.amount = current_order.total
     payment.save!
