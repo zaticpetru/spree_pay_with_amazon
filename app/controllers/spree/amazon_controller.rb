@@ -63,12 +63,12 @@ class Spree::AmazonController < Spree::StoreController
       current_order.reload
 
       if current_order.shipments.empty?
-        render plain: 'Not shippable to this address'
+        render json: { success: false, html: "Not shippable to this address" }
       else
         render layout: false
       end
     else
-      render plain: "Oops! Sorry, we don't ship outside of the UK. Please choose a UK address and continue."
+      render json: { success: false, html: "Oops! Sorry, we don't ship outside of the UK. Please choose a UK address and continue." }
     end
   end
 
