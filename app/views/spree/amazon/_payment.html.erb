@@ -6,17 +6,16 @@
 <%# @copyright   Copyright (c) 2014 Amazon.com %>
 <%# @license     http://opensource.org/licenses/Apache-2.0  Apache License, Version 2.0 %>
 <%# %>
-var amazon_payment_post = false;
 new OffAmazonPayments.Widgets.Wallet({
   sellerId: '<%= @amazon_gateway.preferred_merchant_id %>',
   onPaymentSelect: function(orderReference) {
-    if (amazon_payment_post == false) {
-      amazon_payment_post == true;
+      $('#amzWidgetSubmit').addClass("disabled");
+      $('#amzWidgetSubmit').addClass("hidden");
+      $('#amz_overlay').removeClass("hidden");
       jQuery.post(
         '/amazon_order/payment',
         {"order_reference": order_reference},
         function() {
-          amazon_payment_post = false;
           amazonLoadingClick();
         }
       );
@@ -26,6 +25,6 @@ new OffAmazonPayments.Widgets.Wallet({
     designMode: 'responsive'
   },
   onError: function(error) {
-    // your error handling code
+    $('#amz_overlay').addClass("hidden");
   }
 }).bind("walletWidgetDiv");
