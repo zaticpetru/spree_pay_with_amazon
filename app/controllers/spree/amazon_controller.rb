@@ -167,11 +167,13 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def update_current_order_address!(address_type, amazon_address)
-    new_address = Spree::Address.new address_attributes(amazon_address)
-    new_address.save!
+    unless amazon_address.nil?
+      new_address = Spree::Address.new address_attributes(amazon_address)
+      new_address.save!
 
-    current_order.send("#{address_type}_id=", new_address.id)
-    current_order.save!
+      current_order.send("#{address_type}_id=", new_address.id)
+      current_order.save!
+    end
   end
 
   def address_attributes(amazon_address)
