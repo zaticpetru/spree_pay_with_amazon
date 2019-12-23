@@ -84,27 +84,36 @@ class Spree::AmazonController < Spree::StoreController
 
     complete_amazon_order!
 
-    if @order.confirm? && @order.next
-      @current_order = nil
-      flash.notice = Spree.t(:order_processed_successfully)
-      flash[:order_completed] = true
-      redirect_to spree.order_path(@order)
-    else
-      amazon_transaction = @order.amazon_transaction
-      @order.state = 'cart'
-      amazon_transaction.reload
-      if amazon_transaction.soft_decline
-        @order.save!
-        redirect_to address_amazon_order_path, notice: amazon_transaction.message
+    if @order.confirm?
+      byebug
+      if @order.next
+        @current_order = nil
+        flash.notice = Spree.t(:order_processed_successfully)
+        flash[:order_completed] = true
+        redirect_to spree.order_path(@order)
       else
-        @order.amazon_transactions.destroy_all
-        @order.save!
-        redirect_to amazon_logout_path(redirect_to: cart_path), notice: Spree.t(:order_processed_unsuccessfully)
+        handle_unsuccessful_transaction
       end
+    else
+      handle_unsuccessful_transaction
     end
   end
 
   private
+
+  def handle_unsuccessful_transaction
+    amazon_transaction = @order.amazon_transaction
+    @order.state = 'cart'
+    amazon_transaction.reload
+    if amazon_transaction.soft_decline
+      @order.save!
+      redirect_to address_amazon_order_path, notice: amazon_transaction.message
+    else
+      @order.amazon_transactions.destroy_all
+      @order.save!
+      redirect_to amazon_logout_path(redirect_to: cart_path), notice: Spree.t(:order_processed_unsuccessfully)
+    end
+  end
 
   def gateway
     @gateway ||= Spree::Gateway::Amazon.for_currency(current_order.currency)
