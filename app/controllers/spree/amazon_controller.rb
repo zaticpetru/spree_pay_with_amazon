@@ -141,7 +141,7 @@ class Spree::AmazonController < Spree::StoreController
     amazon_order.set_order_reference_details(
         current_order.total,
         seller_order_id: current_order.number,
-        store_name: current_order.store.name,
+        store_name: current_order.store.nil? ? 'musicMagpie Store' : current_order.store.name,
       )
   end
 
