@@ -121,6 +121,7 @@ class Spree::AmazonController < Spree::StoreController
   def create_or_update_payment
     payment_count = current_order.payments.count
     payment = current_order.payments.valid.amazon.first || current_order.payments.create(number: "#{params[:order_reference]}_#{payment_count}")
+    payment = current_order.payments.valid.where.not(state: 'void').amazon.first || current_order.payments.create(number: "#{params[:order_reference]}_#{payment_count}")
     payment.payment_method = gateway
     payment.source ||= Spree::AmazonTransaction.create(
       order_id: current_order.id,
@@ -136,10 +137,10 @@ class Spree::AmazonController < Spree::StoreController
   end
 
   def update_payment_amount!
-    if current_order.payments.valid.amazon.first.nil?
+    if current_order.payments.valid.where.not(state: 'void').amazon.first.nil?
       create_or_update_payment
     end
-    payment = current_order.payments.valid.amazon.first
+    payment = current_order.payments.valid.where.not(state: 'void').amazon.first
     payment.amount = current_order.total
     payment.save!
   end
