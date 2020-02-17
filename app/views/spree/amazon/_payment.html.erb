@@ -10,21 +10,22 @@ var amazon_payment_post = false;
 new OffAmazonPayments.Widgets.Wallet({
   sellerId: '<%= @amazon_gateway.preferred_merchant_id %>',
   onPaymentSelect: function(orderReference) {
-    if (amazon_payment_post == false) {
-      amazon_payment_post == true;
-      jQuery.post(
-        '/amazon_order/payment',
-        {"order_reference": order_reference},
-        function() {
-          amazon_payment_post = false;
-          amazonLoadingClick();
-        }
-      );
+    $('#amzWidgetSubmit').addClass("disabled");
+    $('#amzWidgetSubmit').addClass("hidden");
+    $('#amz_overlay').removeClass("hidden");
+    jQuery.post(
+      '/amazon_order/payment',
+      {"order_reference": order_reference},
+      function() {
+        amazon_payment_post = false;
+        amazonLoadingClick();
+      }
+    );
   },
   design: {
     designMode: 'responsive'
   },
   onError: function(error) {
-    // your error handling code
+    $('#amz_overlay').addClass("hidden");
   }
 }).bind("walletWidgetDiv");
