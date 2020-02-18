@@ -10,6 +10,7 @@ var amazon_payment_post = false;
 new OffAmazonPayments.Widgets.Wallet({
   sellerId: '<%= @amazon_gateway.preferred_merchant_id %>',
   onPaymentSelect: function(orderReference) {
+    window.alert("offAmazonPayments");
     $('#amzWidgetSubmit').addClass("disabled");
     $('#amzWidgetSubmit').addClass("hidden");
     $('#amz_overlay').removeClass("hidden");
@@ -26,6 +27,7 @@ new OffAmazonPayments.Widgets.Wallet({
     designMode: 'responsive'
   },
   onError: function(error) {
+    window.alert("offAmazonPayments_onError");
     $('#amz_overlay').addClass("hidden");
   }
 }).bind("walletWidgetDiv");
