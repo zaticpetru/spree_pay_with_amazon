@@ -98,7 +98,6 @@ class Spree::AmazonController < Spree::StoreController
     complete_amazon_order!
 
     if @order.confirm?
-      byebug
       if @order.next
         @current_order = nil
         flash.notice = Spree.t(:order_processed_successfully)
