@@ -140,8 +140,12 @@ class Spree::AmazonController < Spree::StoreController
       payment_count += 1
       payment.number = "#{params[:order_reference]}_#{payment_count}"
     end
-    payment.save!
-    payment.source.save!
+    begin
+      payment.save!
+      payment.source.save!
+    rescue StateMachines::InvalidTransition
+      Rails.logger.error("create_or_update_payment: Invalid Transition")
+    end
   end
 
   def update_payment_amount!
